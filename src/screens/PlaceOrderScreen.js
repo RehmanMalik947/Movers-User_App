@@ -1,62 +1,75 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { Button, TextInput, Chip } from 'react-native-paper';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList } from 'react-native';
+import { Button, Chip } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Modal from 'react-native-modal';
+import { useNavigation } from '@react-navigation/native';
 
 const PlaceOrderScreen = () => {
   const [vehicle, setVehicle] = useState('SM');
-  const [pickupLocation, setPickupLocation] = useState('Mall 1, Gulberg, Lahore');
+  const [pickupLocation, setPickupLocation] = useState('');
   const [dropLocation, setDropLocation] = useState('');
   const [pickupDateTime, setPickupDateTime] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectingPickup, setSelectingPickup] = useState(true);
+
+  const navigation = useNavigation();
 
   const itemOptions = ['Food', 'Documents', 'Clothing', 'Car', 'Digital Product', 'Glass'];
+  const cityList = ['Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Multan', 'Faisalabad', 'Peshawar'];
 
   const toggleItem = (item) => {
-    if (selectedItems.includes(item)) {
-      setSelectedItems(selectedItems.filter(i => i !== item));
-    } else {
-      setSelectedItems([...selectedItems, item]);
-    }
+    setSelectedItems((prev) =>
+      prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
+    );
+  };
+
+  const openModal = (isPickup) => {
+    setSelectingPickup(isPickup);
+    setModalVisible(true);
+  };
+
+  const selectCity = (city) => {
+    if (selectingPickup) setPickupLocation(city);
+    else setDropLocation(city);
+    setModalVisible(false);
   };
 
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Place Order</Text>
       </View>
 
       {/* Vehicle Selection */}
-      <View style={{ marginBottom: 12 , paddingTop:22 , borderRadius:18 , backgroundColor:'#FDF1D9'}}>
-              <View style={styles.vehicleContainer}>
-        {['SM', 'MT', 'LT', 'HT'].map(v => (
-          <TouchableOpacity
-            key={v}
-            style={[
-              styles.vehicleButton,
-              vehicle === v && styles.vehicleButtonSelected
-            ]}
-            onPress={() => setVehicle(v)}
-          >
-            <Text style={vehicle === v ? styles.vehicleTextSelected : styles.vehicleText}>{v}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <View style={{ marginBottom: 12, paddingTop: 22, borderRadius: 18, backgroundColor: '#FDF1D9' }}>
+        <View style={styles.vehicleContainer}>
+          {['SM', 'MT', 'LT', 'HT'].map(v => (
+            <TouchableOpacity
+              key={v}
+              style={[styles.vehicleButton, vehicle === v && styles.vehicleButtonSelected]}
+              onPress={() => setVehicle(v)}
+            >
+              <Text style={vehicle === v ? styles.vehicleTextSelected : styles.vehicleText}>{v}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* Location */}
       <View style={styles.locationContainer}>
         <Text style={styles.label}>Add location</Text>
-        <TouchableOpacity style={styles.locationBox}>
+        <TouchableOpacity style={styles.locationBox} onPress={() => openModal(true)}>
           <Text>{pickupLocation || 'Enter pickup location'}</Text>
           <Icon name="plus-circle-outline" size={24} color="#000" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.locationBox}>
+        <TouchableOpacity style={styles.locationBox} onPress={() => openModal(false)}>
           <Text>{dropLocation || 'Drop off location'}</Text>
           <Icon name="plus-circle-outline" size={24} color="#aaa" />
         </TouchableOpacity>
@@ -95,65 +108,60 @@ const PlaceOrderScreen = () => {
       </View>
 
       {/* Next Button */}
-      <Button mode="contained" style={styles.nextButton}>
+      <Button mode="contained" onPress={()=>{navigation.navigate('setDate')}} style={styles.nextButton}>
         Next
       </Button>
+
+      {/* City Selection Modal */}
+      <Modal
+        isVisible={modalVisible}
+        onBackdropPress={() => setModalVisible(false)}
+        style={{ justifyContent: 'flex-end', margin: 0 }}
+      >
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>
+            {selectingPickup ? 'Select Pickup City' : 'Select Drop-off City'}
+          </Text>
+
+          <FlatList
+            data={cityList}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.cityItem} onPress={() => selectCity(item)}>
+                <Text style={styles.cityText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+
+          <Button onPress={() => setModalVisible(false)} mode="outlined" style={{ marginTop: 10 }}>
+            Cancel
+          </Button>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff', // same as home screen
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 16,
-    color: '#2A2A2A', // match home screen text dark
-  },
-  vehicleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 16, color: '#2A2A2A' },
+  vehicleContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
   vehicleButton: {
     padding: 10,
-    borderRadius: 18, // more rounded like home
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#F0E8D6', // home screen card border
+    borderColor: '#DAAE58',
     flex: 1,
     marginHorizontal: 4,
     alignItems: 'center',
-    backgroundColor: '#FDF1D9', // light cream background
+    backgroundColor: '#DAAE58',
   },
-  vehicleButtonSelected: {
-    backgroundColor: '#DAAE58', // gold/honey active
-    borderColor: '#DAAE58',
-  },
-  vehicleText: {
-    color: '#2A2A2A',
-    fontWeight: '600',
-  },
-  vehicleTextSelected: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  locationContainer: {
-    marginBottom: 24,
-  },
-  label: {
-    fontWeight: '700',
-    marginBottom: 8,
-    color: '#2A2A2A',
-  },
+  vehicleButtonSelected: { backgroundColor: '#DAAE58', borderColor: '#DAAE58' },
+  vehicleText: { color: '#fff', fontWeight: '600' },
+  vehicleTextSelected: { color: '#fff', fontWeight: '700' },
+  locationContainer: { marginBottom: 24 },
+  label: { fontWeight: '700', marginBottom: 8, color: '#2A2A2A' },
   locationBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -162,11 +170,9 @@ const styles = StyleSheet.create({
     borderColor: '#F0E8D6',
     borderRadius: 18,
     marginBottom: 12,
-    backgroundColor: '#FDF1D9', // light cream like home screen cards
+    backgroundColor: '#FDF1D9',
   },
-  pickupContainer: {
-    marginBottom: 24,
-  },
+  pickupContainer: { marginBottom: 24 },
   pickupBox: {
     padding: 12,
     borderWidth: 1,
@@ -174,42 +180,36 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FDF1D9',
   },
-  itemsContainer: {
-    marginBottom: 24,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  chip: {
-    marginRight: 8,
-    marginBottom: 8,
-    borderColor: '#F0E8D6',
-  },
+  itemsContainer: { marginBottom: 24 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  chip: { marginRight: 8, marginBottom: 8, borderColor: '#F0E8D6' },
   fareContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#FDF1D9', // match home screen card style
+    backgroundColor: '#FDF1D9',
     borderRadius: 18,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: '#F0E8D6',
   },
-  fareText: {
-    fontWeight: '700',
-    color: '#2A2A2A',
+  fareText: { fontWeight: '700', color: '#2A2A2A' },
+  fareAmount: { fontWeight: '700', color: '#2A2A2A' },
+  nextButton: { padding: 8, borderRadius: 18, backgroundColor: '#DAAE58' },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
   },
-  fareAmount: {
-    fontWeight: '700',
-    color: '#2A2A2A',
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: '#2A2A2A' },
+  cityItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  nextButton: {
-    padding: 8,
-    borderRadius: 18,
-    backgroundColor: '#DAAE58', // gold like home screen arrow button
-  },
+  cityText: { fontSize: 16, color: '#333' },
 });
-
 
 export default PlaceOrderScreen;

@@ -1,4 +1,3 @@
-// src/navigation/BottomTabs.js
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -6,11 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Icon2 from 'react-native-vector-icons/FontAwesome';
 
-
 import HomeScreen from '../HomeScreen';
-// If you want real screens instead of dummies, import them and swap below
-// import CartScreen from '../screens/CartScreen';
-// import DetailsScreen from '../screens/DetailsScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -21,34 +16,20 @@ const DummyScreen = ({ title }) => (
   </View>
 );
 
-// Center floating action button for the middle tab
 const CustomTabBarButton = ({ children, onPress }) => (
   <TouchableOpacity
     style={styles.centerButtonWrapper}
     onPress={onPress}
-    activeOpacity={0.85}
+    activeOpacity={0.9}
   >
     <View style={styles.centerButton}>{children}</View>
   </TouchableOpacity>
 );
 
-// A stack for the Home tab so you can push details/cart later without leaving tabs
 function HomeStack() {
   return (
-    <HomeStackNav.Navigator
-      screenOptions={{
-        headerTitleAlign: 'center',
-      }}
-    >
-      <HomeStackNav.Screen
-        name="HomeMain"
-        component={HomeScreen}
-        options={{ headerShown: false, title: 'Rubaika Cash & Carry' }}
-      />
-      {/*
-      <HomeStackNav.Screen name="Details" component={DetailsScreen} options={{ title: 'Details' }} />
-      <HomeStackNav.Screen name="Cart" component={CartScreen} options={{ title: 'Cart' }} />
-      */}
+    <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
     </HomeStackNav.Navigator>
   );
 }
@@ -70,7 +51,7 @@ export default function BottomTabs() {
         component={HomeStack}
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <Icon name="home" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Icon name="home" size={24} color={color} />,
         }}
       />
 
@@ -78,26 +59,33 @@ export default function BottomTabs() {
         name="Tracking"
         children={() => <DummyScreen title="Tracking" />}
         options={{
-          tabBarIcon: ({ color }) => <Icon name="location-on" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Icon name="location-on" size={24} color={color} />,
         }}
       />
 
-      {/* Center Action Button */}
-      <Tab.Screen
-        name="Action"
-        children={() => <DummyScreen title="New Shipment" />}
-        options={{
-          tabBarIcon: () => <Icon2 name="send" size={26} color="#fff" />,
-          tabBarButton: (props) => <CustomTabBarButton {...props} />,
-          tabBarLabel: '',
-        }}
+      {/* Center Floating Button */}
+     <Tab.Screen
+  name="Action"
+  children={() => <DummyScreen title="New Shipment" />}
+  options={{
+    tabBarIcon: () => (
+      <Icon2
+        name="send"
+        size={28}
+        color="#fff"
+        style={{ alignSelf: 'center' , marginTop: -2 }}
+      />
+    ),
+    tabBarButton: (props) => <CustomTabBarButton {...props} />,
+    tabBarLabel: () => null, // completely remove label space
+  }}
       />
 
       <Tab.Screen
         name="Chats"
         children={() => <DummyScreen title="Chats" />}
         options={{
-          tabBarIcon: ({ color }) => <Icon name="chat-bubble-outline" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Icon name="chat-bubble-outline" size={24} color={color} />,
         }}
       />
 
@@ -105,7 +93,7 @@ export default function BottomTabs() {
         name="Profile"
         children={() => <DummyScreen title="Profile" />}
         options={{
-          tabBarIcon: ({ color }) => <Icon name="person-outline" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Icon name="person-outline" size={24} color={color} />,
         }}
       />
     </Tab.Navigator>
@@ -116,10 +104,14 @@ const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
     height: 65,
-    borderTopWidth: 0.5,
+    borderTopWidth: 0.3,
     borderTopColor: '#ddd',
     backgroundColor: '#fff',
-    elevation: 8,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: -2 },
+    shadowRadius: 6,
   },
   tabLabel: {
     fontSize: 12,
@@ -129,15 +121,21 @@ const styles = StyleSheet.create({
     top: -25,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#E6A940',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   centerButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
     backgroundColor: '#E6A940',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   dummy: {
     flex: 1,

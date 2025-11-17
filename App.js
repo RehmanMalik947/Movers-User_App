@@ -7,6 +7,8 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import BottomTabs from './src/screens/Navigation/BottomTabs';
 import PlaceOrderScreen from './src/screens/PlaceOrderScreen';
+import SetDateTimeScreen from './src/screens/SetDateTimeScreen';
+// import PickupLocationScreen from './src/screens/setPickup';
 // If you later want stack screens outside tabs (e.g. auth, onboarding), add them here:
 // import DetailsScreen from './src/screens/DetailsScreen';
 // import CartScreen from './src/screens/CartScreen';
@@ -32,6 +34,9 @@ export default function App() {
           >
             <RootStack.Screen name="MainTabs" component={BottomTabs} />
             <RootStack.Screen name="placeOrder" component={PlaceOrderScreen} />
+            <RootStack.Screen name="setDate" component={SetDateTimeScreen} />
+            {/* <RootStack.Screen name="pickup" component={PickupLocationScreen} /> */}
+
 
             {/*
             // Example: push-only screens that should sit above tabs
