@@ -62,7 +62,7 @@ const PlaceOrderScreen = () => {
       </View>
 
       {/* Location */}
-      <View style={styles.locationContainer}>
+      {/* <View style={styles.locationContainer}>
         <Text style={styles.label}>Add location</Text>
         <TouchableOpacity style={styles.locationBox} onPress={() => openModal(true)}>
           <Text>{pickupLocation || 'Enter pickup location'}</Text>
@@ -73,7 +73,7 @@ const PlaceOrderScreen = () => {
           <Text>{dropLocation || 'Drop off location'}</Text>
           <Icon name="plus-circle-outline" size={24} color="#aaa" />
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* Pickup Date & Time */}
       <View style={styles.pickupContainer}>

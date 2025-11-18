@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -14,23 +14,28 @@ import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
-export default function PickupLocationScreen() {
+export default function DropoffLocationScreen() {
   const [region, setRegion] = useState({
     latitude: 31.5204,
     longitude: 74.3587,
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   });
+  const navigation = useNavigation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const navigation = useNavigation();
 
+  // Set custom header with navigation.setOptions
+
+
+  // Search Google Places API
   const searchLocation = async (text) => {
     setQuery(text);
     if (text.length < 3) {
       setResults([]);
       return;
     }
+
     try {
       const res = await axios.get(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${text}&key=YOUR_GOOGLE_API_KEY`
@@ -41,6 +46,7 @@ export default function PickupLocationScreen() {
     }
   };
 
+  // Handle selection from autocomplete
   const handleSelectLocation = async (item) => {
     try {
       const res = await axios.get(
@@ -59,9 +65,10 @@ export default function PickupLocationScreen() {
     }
   };
 
+  // Confirm button
   const handleConfirm = () => {
-    navigation.navigate('dropoff', {
-      pickupLocation: {
+    navigation.navigate('placeOrder', {
+      dropoffLocation: {
         latitude: region.latitude,
         longitude: region.longitude,
         address: query,
@@ -69,26 +76,17 @@ export default function PickupLocationScreen() {
     });
   };
 
-  navigation.setOptions({
+    navigation.setOptions({
     headerShown: true,
-    title: 'Pickup Location',
+    title: 'Dropoff Location',
   });
-
   return (
     <View style={{ flex: 1 }}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>⬅ Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pickup Location</Text>
-      </View> */}
-
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           value={query}
-          placeholder="Search pickup location"
+          placeholder="Search drop-off location..."
           onChangeText={searchLocation}
           style={styles.input}
         />
@@ -117,69 +115,41 @@ export default function PickupLocationScreen() {
         provider={PROVIDER_GOOGLE}
         region={region}
         onRegionChangeComplete={(r) => setRegion(r)}
-        customMapStyle={mapStyle} // optional dark/light theme
+        customMapStyle={mapStyle} // Optional: dark/light theme
       >
         <Marker
           coordinate={{ latitude: region.latitude, longitude: region.longitude }}
         />
       </MapView>
 
-      {/* Floating Marker */}
+      {/* Floating Center Marker */}
       <View style={styles.markerFixed}>
         <Text style={{ fontSize: 35 }}>📍</Text>
       </View>
 
       {/* Footer Panel */}
       <View style={styles.footer}>
-        <Text style={styles.addressText}>{query || 'Select pickup location'}</Text>
+        <Text style={styles.addressText}>
+          {query || 'Select drop-off location'}
+        </Text>
         <TouchableOpacity style={styles.btn} onPress={handleConfirm}>
-          <Text style={styles.btnText}>Confirm Pickup Location</Text>
+          <Text style={styles.btnText}>Confirm Drop-off Location</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-// Optional map style (dark mode)
+// Optional map style (light/dark theme)
 const mapStyle = [
-  {
-    elementType: 'geometry',
-    stylers: [{ color: '#f5f5f5' }],
-  },
-  {
-    elementType: 'labels.icon',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#616161' }],
-  },
-  {
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#f5f5f5' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#ffffff' }],
-  },
+  { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
 ];
 
 const styles = StyleSheet.create({
-  header: {
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    height: 60,
-    backgroundColor: '#fff',
-    zIndex: 300,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    elevation: 4,
-  },
-  backText: { fontSize: 16, color: '#007aff' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 'bold' },
   searchContainer: {
     position: 'absolute',
     top: 10,

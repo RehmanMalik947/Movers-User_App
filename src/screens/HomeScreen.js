@@ -104,7 +104,7 @@ export default function HomeScreen() {
           ].map((item) => (
             <TouchableOpacity
               key={item.name}
-              onPress={() => navigation.navigate('placeOrder')}
+              onPress={() => navigation.navigate('pickup')}
               style={styles.card}
               activeOpacity={0.9}
             >
