@@ -6,6 +6,9 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import Icon2 from 'react-native-vector-icons/FontAwesome';
 
 import HomeScreen from '../HomeScreen';
+import TrackingScreen from '../TrackingScreen';
+import ChatScreen from '../chatScreen';
+import ProfileScreen from '../ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -57,7 +60,7 @@ export default function BottomTabs() {
 
       <Tab.Screen
         name="Tracking"
-        children={() => <DummyScreen title="Tracking" />}
+        children={() => <TrackingScreen />}
         options={{
           tabBarIcon: ({ color }) => <Icon name="location-on" size={24} color={color} />,
         }}
@@ -83,7 +86,7 @@ export default function BottomTabs() {
 
       <Tab.Screen
         name="Chats"
-        children={() => <DummyScreen title="Chats" />}
+        children={() => <ChatScreen />}
         options={{
           tabBarIcon: ({ color }) => <Icon name="chat-bubble-outline" size={24} color={color} />,
         }}
@@ -91,7 +94,7 @@ export default function BottomTabs() {
 
       <Tab.Screen
         name="Profile"
-        children={() => <DummyScreen title="Profile" />}
+        children={() => <ProfileScreen />}
         options={{
           tabBarIcon: ({ color }) => <Icon name="person-outline" size={24} color={color} />,
         }}

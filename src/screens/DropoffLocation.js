@@ -11,10 +11,14 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import { setDropoffLocation } from '../redux/slices/locationSlice';
+import { useDispatch } from 'react-redux';
 
 const { width, height } = Dimensions.get('window');
 
 export default function DropoffLocationScreen() {
+
+    const dispatch = useDispatch();
   const [region, setRegion] = useState({
     latitude: 31.5204,
     longitude: 74.3587,
@@ -65,20 +69,27 @@ export default function DropoffLocationScreen() {
     }
   };
 
-  // Confirm button
-  const handleConfirm = () => {
-    navigation.navigate('placeOrder', {
-      dropoffLocation: {
-        latitude: region.latitude,
-        longitude: region.longitude,
-        address: query,
-      },
-    });
-  };
+const handleConfirm = () => {
+  dispatch(
+    setDropoffLocation({
+      latitude: region.latitude,
+      longitude: region.longitude,
+      address: query,
+    })
+  );
+
+  navigation.navigate('selectVehical'); // Navigate to next screen (summary / confirmation)
+};
 
     navigation.setOptions({
     headerShown: true,
     title: 'Dropoff Location',
+     headerStyle: {
+      backgroundColor: '#DAAE58',
+    },
+    headerTitleStyle: {
+      color: '#000', // optional (title color)
+    },
   });
   return (
     <View style={{ flex: 1 }}>
@@ -188,7 +199,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF4D9', 
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     padding: 15,
@@ -200,7 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   btn: {
-    backgroundColor: '#007aff',
+   backgroundColor: '#DAAE58',
     paddingVertical: 14,
     paddingHorizontal: 25,
     borderRadius: 12,

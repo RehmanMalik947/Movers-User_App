@@ -29,7 +29,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.welcome}>
-              Welcome, Amna <Text style={{ fontSize: 18 }}>👋</Text>
+              Welcome, Imran <Text style={{ fontSize: 18 }}>👋</Text>
             </Text>
             <Text style={styles.subtitle}>Driving efficiency in every shipment</Text>
 
@@ -42,7 +42,7 @@ export default function HomeScreen() {
 
           <View style={styles.profileWrapper}>
             <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b36?q=80&w=200&auto=format&fit=crop' }}
+              source={{ uri: 'https://unsplash.com/photos/young-woman-with-dark-hair-wearing-a-blue-tank-top-PR-tMohdtFw?q=80&w=200&auto=format&fit=crop' }}
               style={styles.profileImg}
             />
           </View>

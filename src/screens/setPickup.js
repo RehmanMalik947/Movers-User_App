@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,15 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import { setPickupLocation } from '../redux/slices/locationSlice';
+import { useDispatch } from 'react-redux';
 
 const { width, height } = Dimensions.get('window');
 
 export default function PickupLocationScreen() {
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
+
   const [region, setRegion] = useState({
     latitude: 31.5204,
     longitude: 74.3587,
@@ -23,67 +28,92 @@ export default function PickupLocationScreen() {
   });
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const navigation = useNavigation();
+  const [markerAddress, setMarkerAddress] = useState(''); // live marker address
 
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      title: 'Pickup Location',
+      headerStyle: {
+      backgroundColor: '#DAAE58',
+    },
+    headerTitleStyle: {
+      color: '#000', // optional (title color)
+    },
+    
+    });
+  }, []);
+
+  // Search location via Google Places API
   const searchLocation = async (text) => {
     setQuery(text);
     if (text.length < 3) {
       setResults([]);
       return;
     }
+
     try {
       const res = await axios.get(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${text}&key=YOUR_GOOGLE_API_KEY`
       );
       setResults(res.data.predictions || []);
     } catch (err) {
-      console.log(err);
+      console.log('Autocomplete error:', err);
     }
   };
 
+  // Select location from autocomplete
   const handleSelectLocation = async (item) => {
     try {
       const res = await axios.get(
         `https://maps.googleapis.com/maps/api/geocode/json?place_id=${item.place_id}&key=YOUR_GOOGLE_API_KEY`
       );
+
       const location = res.data.results[0].geometry.location;
+      const formattedAddress = res.data.results[0].formatted_address;
+
       setRegion({
         ...region,
         latitude: location.lat,
         longitude: location.lng,
       });
-      setQuery(item.description);
+
+      setQuery(formattedAddress);
+      setMarkerAddress(formattedAddress);
       setResults([]);
     } catch (err) {
-      console.log(err);
+      console.log('Geocode error:', err);
     }
   };
 
-  const handleConfirm = () => {
-    navigation.navigate('dropoff', {
-      pickupLocation: {
-        latitude: region.latitude,
-        longitude: region.longitude,
-        address: query,
-      },
-    });
+  // Reverse geocode for marker position
+  const updateMarkerAddress = async (lat, lng) => {
+    try {
+      const res = await axios.get(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=YOUR_GOOGLE_API_KEY`
+      );
+
+      const address = res.data.results[0]?.formatted_address || '';
+      setMarkerAddress(address);
+    } catch (err) {
+      console.log('Reverse geocode error:', err);
+    }
   };
 
-  navigation.setOptions({
-    headerShown: true,
-    title: 'Pickup Location',
-  });
+  // Confirm pickup location
+  const handleConfirm = () => {
+    dispatch(
+      setPickupLocation({
+        latitude: region.latitude,
+        longitude: region.longitude,
+        address: markerAddress || query || 'Unknown location',
+      })
+    );
+    navigation.navigate('dropoff');
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>⬅ Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pickup Location</Text>
-      </View> */}
-
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -116,12 +146,13 @@ export default function PickupLocationScreen() {
         style={{ flex: 1 }}
         provider={PROVIDER_GOOGLE}
         region={region}
-        onRegionChangeComplete={(r) => setRegion(r)}
+        onRegionChangeComplete={(r) => {
+          setRegion(r);
+          updateMarkerAddress(r.latitude, r.longitude);
+        }}
         customMapStyle={mapStyle} // optional dark/light theme
       >
-        <Marker
-          coordinate={{ latitude: region.latitude, longitude: region.longitude }}
-        />
+        <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} />
       </MapView>
 
       {/* Floating Marker */}
@@ -131,7 +162,9 @@ export default function PickupLocationScreen() {
 
       {/* Footer Panel */}
       <View style={styles.footer}>
-        <Text style={styles.addressText}>{query || 'Select pickup location'}</Text>
+        <Text style={styles.addressText}>
+          {markerAddress || 'Select pickup location'}
+        </Text>
         <TouchableOpacity style={styles.btn} onPress={handleConfirm}>
           <Text style={styles.btnText}>Confirm Pickup Location</Text>
         </TouchableOpacity>
@@ -166,20 +199,6 @@ const mapStyle = [
 ];
 
 const styles = StyleSheet.create({
-  header: {
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    height: 60,
-    backgroundColor: '#fff',
-    zIndex: 300,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    elevation: 4,
-  },
-  backText: { fontSize: 16, color: '#007aff' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 'bold' },
   searchContainer: {
     position: 'absolute',
     top: 10,
@@ -218,7 +237,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF4D9',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     padding: 15,
@@ -230,7 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   btn: {
-    backgroundColor: '#007aff',
+    backgroundColor: '#DAAE58',
     paddingVertical: 14,
     paddingHorizontal: 25,
     borderRadius: 12,
