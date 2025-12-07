@@ -1,3 +1,4 @@
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   View,
@@ -11,6 +12,8 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 
 export default function UserProfileScreen() {
+
+  const navigation = useNavigation();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -80,7 +83,7 @@ export default function UserProfileScreen() {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutBtn}>
+        <TouchableOpacity onPress={()=>{navigation.navigate('login')}} style={styles.logoutBtn}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>

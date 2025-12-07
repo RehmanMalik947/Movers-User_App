@@ -68,7 +68,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Pickup & Deliver Card */}
         <View style={styles.routeBox}>
           <View style={styles.routeRow}>
             <View style={[styles.dot, { backgroundColor: '#E6A940' }]} />

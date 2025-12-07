@@ -14,6 +14,7 @@ import store from './src/redux/store';
 import SplashScreen from './src/screens/splashScreen';
 import VehicleSelectionScreen from './src/screens/VehicleSelectionScreen';
 import GoodsInfoScreen from './src/screens/GoodsInfoScreen';
+import LoginScreen from './src/screens/LoginScreen';
 // If you later want stack screens outside tabs (e.g. auth, onboarding), add them here:
 // import DetailsScreen from './src/screens/DetailsScreen';
 // import CartScreen from './src/screens/CartScreen';
@@ -40,6 +41,7 @@ export default function App() {
           >
             <RootStack.Screen name="MainTabs" component={BottomTabs} />
             <RootStack.Screen name="placeOrder" component={PlaceOrderScreen} />
+            <RootStack.Screen name="login" component={LoginScreen} />
             <RootStack.Screen name="setDate" component={SetDateTimeScreen} />
             <RootStack.Screen name="splash" component={SplashScreen} />
             <RootStack.Screen name="selectVehical" component={VehicleSelectionScreen} />
