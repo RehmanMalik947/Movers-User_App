@@ -15,9 +15,9 @@ import SplashScreen from './src/screens/splashScreen';
 import VehicleSelectionScreen from './src/screens/VehicleSelectionScreen';
 import GoodsInfoScreen from './src/screens/GoodsInfoScreen';
 import LoginScreen from './src/screens/LoginScreen';
-// If you later want stack screens outside tabs (e.g. auth, onboarding), add them here:
-// import DetailsScreen from './src/screens/DetailsScreen';
-// import CartScreen from './src/screens/CartScreen';
+
+// 🔹 NEW: import ModeProvider
+import { ModeProvider } from './src/context/ModeContext';
 
 const RootStack = createNativeStackNavigator();
 
@@ -25,43 +25,35 @@ export default function App() {
   const isDark = useColorScheme() === 'dark';
 
   return (
-      <Provider store={store}>
-    <SafeAreaProvider>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        translucent={false}
-        backgroundColor="transparent"
-      />
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <NavigationContainer>
-          <RootStack.Navigator initialRouteName='splash'
-            screenOptions={{
-              headerShown: false, // tabs manage their own headers if needed
-            }}
-          >
-            <RootStack.Screen name="MainTabs" component={BottomTabs} />
-            <RootStack.Screen name="placeOrder" component={PlaceOrderScreen} />
-            <RootStack.Screen name="login" component={LoginScreen} />
-            <RootStack.Screen name="setDate" component={SetDateTimeScreen} />
-            <RootStack.Screen name="splash" component={SplashScreen} />
-            <RootStack.Screen name="selectVehical" component={VehicleSelectionScreen} />
-            <RootStack.Screen name="goodinfo" component={GoodsInfoScreen} />
-
-
-
-            <RootStack.Screen name="pickup" component={setPickup} />
-            <RootStack.Screen name="dropoff" component={DropoffLocationScreen} />
-
-
-            {/*
-            // Example: push-only screens that should sit above tabs
-            <RootStack.Screen name="Details" component={DetailsScreen} />
-            <RootStack.Screen name="Cart" component={CartScreen} />
-            */}
-          </RootStack.Navigator>
-        </NavigationContainer>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <Provider store={store}>
+      {/* Wrap whole app with ModeProvider */}
+      <ModeProvider>
+        <SafeAreaProvider>
+          <StatusBar
+            barStyle={isDark ? 'light-content' : 'dark-content'}
+            translucent={false}
+            backgroundColor="transparent"
+          />
+          <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+            <NavigationContainer>
+              <RootStack.Navigator
+                initialRouteName="splash"
+                screenOptions={{ headerShown: false }}
+              >
+                <RootStack.Screen name="MainTabs" component={BottomTabs} />
+                <RootStack.Screen name="placeOrder" component={PlaceOrderScreen} />
+                <RootStack.Screen name="login" component={LoginScreen} />
+                <RootStack.Screen name="setDate" component={SetDateTimeScreen} />
+                <RootStack.Screen name="splash" component={SplashScreen} />
+                <RootStack.Screen name="selectVehical" component={VehicleSelectionScreen} />
+                <RootStack.Screen name="goodinfo" component={GoodsInfoScreen} />
+                <RootStack.Screen name="pickup" component={setPickup} />
+                <RootStack.Screen name="dropoff" component={DropoffLocationScreen} />
+              </RootStack.Navigator>
+            </NavigationContainer>
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </ModeProvider>
     </Provider>
   );
 }

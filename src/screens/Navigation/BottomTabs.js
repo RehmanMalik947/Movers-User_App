@@ -1,3 +1,4 @@
+// src/screens/Navigation/BottomTabs.js
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -10,8 +11,18 @@ import TrackingScreen from '../TrackingScreen';
 import ChatScreen from '../chatScreen';
 import ProfileScreen from '../ProfileScreen';
 
+// 🔹 NEW IMPORT: mode hook
+import { useMode } from '../../context/ModeContext';
+
+// 🔹 NEW IMPORT: owner screens
+import OwnerHomeScreen from '../owner/OwnerHomeScreen';
+import OwnerRequestsScreen from '../owner/OwnerRequestsScreen';
+import OwnerRequestDetailScreen from '../owner/OwnerRequestDetailScreen';
+import OwnerJobsScreen from '../owner/OwnerJobsScreen';
+
 const Tab = createBottomTabNavigator();
 const HomeStackNav = createNativeStackNavigator();
+const OwnerStackNav = createNativeStackNavigator();
 
 const DummyScreen = ({ title }) => (
   <View style={styles.dummy}>
@@ -37,7 +48,25 @@ function HomeStack() {
   );
 }
 
+// 🔹 NEW: Truck Owner Stack
+function OwnerHomeStack() {
+  return (
+    <OwnerStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <OwnerStackNav.Screen name="OwnerHomeMain" component={OwnerHomeScreen} />
+      <OwnerStackNav.Screen name="OwnerRequests" component={OwnerRequestsScreen} />
+      <OwnerStackNav.Screen
+        name="OwnerRequestDetail"
+        component={OwnerRequestDetailScreen}
+      />
+      <OwnerStackNav.Screen name="OwnerJobs" component={OwnerJobsScreen} />
+    </OwnerStackNav.Navigator>
+  );
+}
+
 export default function BottomTabs() {
+  const { mode } = useMode();           // "user" | "owner"
+  const isOwnerMode = mode === 'owner';
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -51,10 +80,12 @@ export default function BottomTabs() {
     >
       <Tab.Screen
         name="HomeTab"
-        component={HomeStack}
+        component={isOwnerMode ? OwnerHomeStack : HomeStack}
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Icon name="home" size={24} color={color} />,
+          title: isOwnerMode ? 'Owner' : 'Home',
+          tabBarIcon: ({ color }) => (
+            <Icon name={isOwnerMode ? 'local-shipping' : 'home'} size={24} color={color} />
+          ),
         }}
       />
 
@@ -62,33 +93,36 @@ export default function BottomTabs() {
         name="Tracking"
         children={() => <TrackingScreen />}
         options={{
-          tabBarIcon: ({ color }) => <Icon name="location-on" size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Icon name="location-on" size={24} color={color} />
+          ),
         }}
       />
 
-      {/* Center Floating Button */}
-     <Tab.Screen
-  name="Action"
-  children={() => <DummyScreen title="New Shipment" />}
-  options={{
-    tabBarIcon: () => (
-      <Icon2
-        name="send"
-        size={28}
-        color="#fff"
-        style={{ alignSelf: 'center' , marginTop: -2 }}
-      />
-    ),
-    tabBarButton: (props) => <CustomTabBarButton {...props} />,
-    tabBarLabel: () => null, // completely remove label space
-  }}
+      <Tab.Screen
+        name="Action"
+        children={() => <DummyScreen title="New Shipment" />}
+        options={{
+          tabBarIcon: () => (
+            <Icon2
+              name="send"
+              size={28}
+              color="#fff"
+              style={{ alignSelf: 'center', marginTop: -2 }}
+            />
+          ),
+          tabBarButton: (props) => <CustomTabBarButton {...props} />,
+          tabBarLabel: () => null,
+        }}
       />
 
       <Tab.Screen
         name="Chats"
         children={() => <ChatScreen />}
         options={{
-          tabBarIcon: ({ color }) => <Icon name="chat-bubble-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Icon name="chat-bubble-outline" size={24} color={color} />
+          ),
         }}
       />
 
@@ -96,12 +130,15 @@ export default function BottomTabs() {
         name="Profile"
         children={() => <ProfileScreen />}
         options={{
-          tabBarIcon: ({ color }) => <Icon name="person-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Icon name="person-outline" size={24} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>
   );
 }
+
 
 const styles = StyleSheet.create({
   tabBar: {
