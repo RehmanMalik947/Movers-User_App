@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -91,7 +91,7 @@ const PlaceOrderScreen = () => {
       </View>
 
       {/* Next Button */}
-      <TouchableOpacity style={styles.nextButton} onPress={() => navigation.navigate('NextScreen')}>
+      <TouchableOpacity style={styles.nextButton} onPress={() => {Alert.alert('Next', 'Proceeding to the next step')}}>
         <Text style={styles.nextButtonText}>Next</Text>
       </TouchableOpacity>
     </ScrollView>

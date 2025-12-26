@@ -18,7 +18,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function DropoffLocationScreen() {
 
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
   const [region, setRegion] = useState({
     latitude: 31.5204,
     longitude: 74.3587,
@@ -69,22 +69,22 @@ export default function DropoffLocationScreen() {
     }
   };
 
-const handleConfirm = () => {
-  dispatch(
-    setDropoffLocation({
-      latitude: region.latitude,
-      longitude: region.longitude,
-      address: query,
-    })
-  );
+  const handleConfirm = () => {
+    dispatch(
+      setDropoffLocation({
+        latitude: region.latitude,
+        longitude: region.longitude,
+        address: query,
+      })
+    );
 
-  navigation.navigate('selectVehical'); // Navigate to next screen (summary / confirmation)
-};
+    navigation.goBack();
+  };
 
-    navigation.setOptions({
+  navigation.setOptions({
     headerShown: true,
     title: 'Dropoff Location',
-     headerStyle: {
+    headerStyle: {
       backgroundColor: '#DAAE58',
     },
     headerTitleStyle: {
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: '#FFF4D9', 
+    backgroundColor: '#FFF4D9',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     padding: 15,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   btn: {
-   backgroundColor: '#DAAE58',
+    backgroundColor: '#DAAE58',
     paddingVertical: 14,
     paddingHorizontal: 25,
     borderRadius: 12,

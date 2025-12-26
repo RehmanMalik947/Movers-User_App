@@ -1,4 +1,3 @@
-// src/screens/Navigation/BottomTabs.js
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -11,10 +10,8 @@ import TrackingScreen from '../TrackingScreen';
 import ChatScreen from '../chatScreen';
 import ProfileScreen from '../ProfileScreen';
 
-// 🔹 NEW IMPORT: mode hook
 import { useMode } from '../../context/ModeContext';
 
-// 🔹 NEW IMPORT: owner screens
 import OwnerHomeScreen from '../owner/OwnerHomeScreen';
 import OwnerRequestsScreen from '../owner/OwnerRequestsScreen';
 import OwnerRequestDetailScreen from '../owner/OwnerRequestDetailScreen';
@@ -157,6 +154,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     paddingBottom: 4,
   },
+
   centerButtonWrapper: {
     top: -25,
     justifyContent: 'center',

@@ -10,19 +10,37 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuth } from '../context/AuthContext';
+import { theme } from '../theme/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  const { login, isLoading } = useAuth();
   const navigation = useNavigation();
+
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      await login(email, password);
+      // Navigation is handled automatically by App.js based on user state
+    } catch (error) {
+      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+    }
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      
+
       {/* Keyboard Avoiding */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -33,7 +51,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          
+
           <View style={styles.container}>
 
             {/* App Logo */}
@@ -48,7 +66,7 @@ export default function LoginScreen() {
 
             {/* Card Container */}
             <View style={styles.card}>
-              
+
               {/* Email Input */}
               <View style={styles.inputContainer}>
                 <Icon name="mail-outline" size={20} color="#DAAE58" />
@@ -58,6 +76,8 @@ export default function LoginScreen() {
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
                 />
               </View>
 
@@ -80,17 +100,22 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               {/* Login Button */}
-              <TouchableOpacity 
-                onPress={() => navigation.navigate('MainTabs')} 
+              <TouchableOpacity
+                onPress={handleSubmit}
                 style={styles.loginBtn}
+                disabled={isLoading}
               >
-                <Text style={styles.loginText}>Login</Text>
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginText}>Login</Text>
+                )}
               </TouchableOpacity>
 
               {/* Signup Link */}
               <View style={styles.signupRow}>
                 <Text style={styles.signupGrey}>Don’t have an account?</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
                   <Text style={styles.signupLink}> Sign up</Text>
                 </TouchableOpacity>
               </View>

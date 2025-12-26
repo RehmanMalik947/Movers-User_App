@@ -35,12 +35,12 @@ export default function PickupLocationScreen() {
       headerShown: true,
       title: 'Pickup Location',
       headerStyle: {
-      backgroundColor: '#DAAE58',
-    },
-    headerTitleStyle: {
-      color: '#000', // optional (title color)
-    },
-    
+        backgroundColor: '#DAAE58',
+      },
+      headerTitleStyle: {
+        color: '#000', // optional (title color)
+      },
+
     });
   }, []);
 
@@ -109,7 +109,7 @@ export default function PickupLocationScreen() {
         address: markerAddress || query || 'Unknown location',
       })
     );
-    navigation.navigate('dropoff');
+    navigation.goBack();
   };
 
   return (
