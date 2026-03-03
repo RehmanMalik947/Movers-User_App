@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockApi } from '../api/mockService';
+import { authApi } from '../api/apiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // { id, name, role, ... }
+    const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // Restore session
@@ -13,7 +13,8 @@ export const AuthProvider = ({ children }) => {
         const loadUser = async () => {
             try {
                 const storedUser = await AsyncStorage.getItem('user');
-                if (storedUser) {
+                const storedToken = await AsyncStorage.getItem('token');
+                if (storedUser && storedToken) {
                     setUser(JSON.parse(storedUser));
                 }
             } catch (e) {
@@ -28,25 +29,33 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         setIsLoading(true);
         try {
-            const userData = await mockApi.login(email, password);
+            const response = await authApi.login(email, password);
+            const { token, user: userData } = response;
+
             setUser(userData);
             await AsyncStorage.setItem('user', JSON.stringify(userData));
+            await AsyncStorage.setItem('token', token);
+            return userData;
         } catch (error) {
-            console.error(error);
+            console.error('Login failed:', error.message);
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
-    const signup = async (name, email, phone, password, role) => {
+    const signup = async (data) => {
         setIsLoading(true);
         try {
-            const userData = await mockApi.signup(name, email, phone, password, role);
+            const response = await authApi.signup(data);
+            const { token, user: userData } = response;
+
             setUser(userData);
             await AsyncStorage.setItem('user', JSON.stringify(userData));
+            await AsyncStorage.setItem('token', token);
+            return userData;
         } catch (error) {
-            console.error(error);
+            console.error('Signup failed:', error.message);
             throw error;
         } finally {
             setIsLoading(false);
@@ -57,6 +66,7 @@ export const AuthProvider = ({ children }) => {
         setIsLoading(true);
         try {
             await AsyncStorage.removeItem('user');
+            await AsyncStorage.removeItem('token');
             setUser(null);
         } finally {
             setIsLoading(false);

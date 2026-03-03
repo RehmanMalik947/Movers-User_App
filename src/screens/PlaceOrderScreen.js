@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
+import { jobApi } from '../api/apiService';
+import { useAuth } from '../context/AuthContext';
 
 const PlaceOrderScreen = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Dummy data (replace with Redux or props)
-  const [pickupAddress, setPickupAddress] = useState('Savanti Road, Bhatti Compound, Karachi, Pakistan');
-  const [deliveryAddress, setDeliveryAddress] = useState('Moulvi Tamizuddin Khan Road, Naval Officers Colony, Karachi');
-  const [vehicle, setVehicle] = useState('Shehzore');
-  const [goodsType, setGoodsType] = useState('Office Shifting');
+  // Real data from Redux
+  const pickupLocation = useSelector(state => state.location.pickupLocation);
+  const dropoffLocation = useSelector(state => state.location.dropoffLocation);
+
+  // These should ideally come from Redux or navigation params
+  const vehicle = 'Shehzore';
+  const goodsType = 'Furniture';
 
   navigation.setOptions({
     headerShown: true,
@@ -19,47 +26,76 @@ const PlaceOrderScreen = () => {
       backgroundColor: '#DAAE58',
     },
     headerTitleStyle: {
-      color: '#000', // optional (title color)
+      color: '#000',
     },
   });
 
+  const handlePlaceOrder = async () => {
+    if (!pickupLocation || !dropoffLocation) {
+      Alert.alert('Error', 'Missing location information');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const jobData = {
+        userId: user?.id,
+        title: `${goodsType} from ${pickupLocation.address.split(',')[0]} to ${dropoffLocation.address.split(',')[0]}`,
+        pickup: pickupLocation.address,
+        dropoff: dropoffLocation.address,
+        goodsType: goodsType,
+        vehicleType: vehicle,
+        date: new Date().toISOString(),
+      };
+
+      await jobApi.create(jobData);
+
+      Alert.alert(
+        'Success',
+        'Your job has been posted successfully! Drivers will start bidding soon.',
+        [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+      );
+    } catch (error) {
+      Alert.alert('Order Failed', error.message || 'Could not place order');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
-   
-
       {/* Card Sections */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Point of Loading Info</Text>
-        <View style={styles.row}>
+        <div className="flex flex-row items-center mb-3">
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Point of Loading Address</Text>
-            <Text style={styles.value}>{pickupAddress}</Text>
+            <Text style={styles.value}>{pickupLocation?.address || 'Not Set'}</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('SetPickup')}>
             <Icon name="pencil-outline" size={20} color="#DAAE58" />
             <Text style={styles.editText}>Edit</Text>
           </TouchableOpacity>
-        </View>
+        </div>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Point of Delivery Info</Text>
-        <View style={styles.row}>
+        <div className="flex flex-row items-center mb-3">
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Point of Delivery Address</Text>
-            <Text style={styles.value}>{deliveryAddress}</Text>
+            <Text style={styles.value}>{dropoffLocation?.address || 'Not Set'}</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('DropoffLocation')}>
             <Icon name="pencil-outline" size={20} color="#DAAE58" />
             <Text style={styles.editText}>Edit</Text>
           </TouchableOpacity>
-        </View>
+        </div>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Vehicle & Goods Info</Text>
-        <View style={styles.row}>
+        <div className="flex flex-row items-center mb-3">
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Vehicle</Text>
             <Text style={styles.value}>{vehicle}</Text>
@@ -68,8 +104,8 @@ const PlaceOrderScreen = () => {
             <Icon name="pencil-outline" size={20} color="#DAAE58" />
             <Text style={styles.editText}>Edit</Text>
           </TouchableOpacity>
-        </View>
-        <View style={styles.row}>
+        </div>
+        <div className="flex flex-row items-center mb-3">
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Goods Type</Text>
             <Text style={styles.value}>{goodsType}</Text>
@@ -78,7 +114,7 @@ const PlaceOrderScreen = () => {
             <Icon name="pencil-outline" size={20} color="#DAAE58" />
             <Text style={styles.editText}>Edit</Text>
           </TouchableOpacity>
-        </View>
+        </div>
       </View>
 
       {/* Fare Section */}
@@ -91,8 +127,16 @@ const PlaceOrderScreen = () => {
       </View>
 
       {/* Next Button */}
-      <TouchableOpacity style={styles.nextButton} onPress={() => {Alert.alert('Next', 'Proceeding to the next step')}}>
-        <Text style={styles.nextButtonText}>Next</Text>
+      <TouchableOpacity
+        style={[styles.nextButton, isSubmitting && { opacity: 0.7 }]}
+        onPress={handlePlaceOrder}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.nextButtonText}>Confirm and Place Order</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -100,16 +144,6 @@ const PlaceOrderScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingVertical: 8 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FDF1D9',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-  },
-  headerTitle: { flex: 1, fontSize: 20, fontWeight: 'bold', marginLeft: 16, color: '#2A2A2A' },
   card: {
     backgroundColor: '#FDF1D9',
     marginHorizontal: 16,
@@ -120,7 +154,6 @@ const styles = StyleSheet.create({
     borderColor: '#F0E8D6',
   },
   cardTitle: { fontWeight: '700', marginBottom: 12, color: '#2A2A2A' },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   label: { fontWeight: '600', color: '#2A2A2A' },
   value: { marginTop: 4, color: '#000' },
   editButton: { flexDirection: 'row', alignItems: 'center' },

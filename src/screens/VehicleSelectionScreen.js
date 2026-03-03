@@ -1,5 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { setVehicle } from '../redux/slices/locationSlice';
 import {
   View,
   Text,
@@ -101,18 +103,18 @@ export default function VehicleScreen() {
   };
 
   // ******** FINAL SELECTED VEHICLE ********
-// ******** FINAL SELECTED VEHICLE ********
-const finalSelectedVehicle = (() => {
-  if (selectedSubCatId) {
-    // subcategory selected
-    return subCatsToShow.find((s) => s.id === selectedSubCatId);
-  } else if (selectedMainCatId) {
-    const mainVehicle = vehicles.find((v) => v.id === selectedMainCatId);
-    // show bottom bar if it has no subcategory
-    if (!mainVehicle.subCategories) return mainVehicle;
-  }
-  return null;
-})();
+  // ******** FINAL SELECTED VEHICLE ********
+  const finalSelectedVehicle = (() => {
+    if (selectedSubCatId) {
+      // subcategory selected
+      return subCatsToShow.find((s) => s.id === selectedSubCatId);
+    } else if (selectedMainCatId) {
+      const mainVehicle = vehicles.find((v) => v.id === selectedMainCatId);
+      // show bottom bar if it has no subcategory
+      if (!mainVehicle.subCategories) return mainVehicle;
+    }
+    return null;
+  })();
 
 
   // ******** MAIN CATEGORY CARD ********
@@ -205,34 +207,39 @@ const finalSelectedVehicle = (() => {
 
       {/* BOTTOM BAR */}
       // ******** BOTTOM BAR ********
-{finalSelectedVehicle && (
-  <View style={styles.bottomBar}>
-    {/* QUANTITY */}
-    <View style={styles.qtyBox}>
-      <TouchableOpacity
-        onPress={() => vehicleCount > 1 && setVehicleCount(vehicleCount - 1)}
-        style={styles.qtyBtn}
-      >
-        <Text style={styles.qtyBtnText}>−</Text>
-      </TouchableOpacity>
+      {finalSelectedVehicle && (
+        <View style={styles.bottomBar}>
+          {/* QUANTITY */}
+          <View style={styles.qtyBox}>
+            <TouchableOpacity
+              onPress={() => vehicleCount > 1 && setVehicleCount(vehicleCount - 1)}
+              style={styles.qtyBtn}
+            >
+              <Text style={styles.qtyBtnText}>−</Text>
+            </TouchableOpacity>
 
-      <Text style={styles.qtyNumber}>{vehicleCount}</Text>
+            <Text style={styles.qtyNumber}>{vehicleCount}</Text>
 
-      <TouchableOpacity
-        onPress={() => setVehicleCount(vehicleCount + 1)}
-        style={styles.qtyBtn}
-      >
-        <Text style={styles.qtyBtnText}>+</Text>
-      </TouchableOpacity>
-    </View>
+            <TouchableOpacity
+              onPress={() => setVehicleCount(vehicleCount + 1)}
+              style={styles.qtyBtn}
+            >
+              <Text style={styles.qtyBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
 
-    {/* NEXT BUTTON */}
-    <TouchableOpacity onPress={()=>{navigation.navigate('goodinfo')}} style={styles.nextBtn}>
-      <Text style={styles.nextTxt}>Next →</Text>
-    </TouchableOpacity>
-  </View>
-)}
-
+          {/* NEXT BUTTON */}
+          <TouchableOpacity
+            onPress={() => {
+              dispatch(setVehicle(finalSelectedVehicle));
+              navigation.navigate('goodinfo');
+            }}
+            style={styles.nextBtn}
+          >
+            <Text style={styles.nextTxt}>Next →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -271,52 +278,52 @@ const styles = StyleSheet.create({
 
   modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 15, textAlign: 'center' },
 
- bottomBar: {
-  position: 'absolute',
-  bottom: 16,
-  left: 16,
-  right: 16,
-  backgroundColor: '#fff',
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  paddingVertical: 12,
-  paddingHorizontal: 20,
-  borderRadius: 16,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.1,
-  shadowRadius: 6,
-  elevation: 5, // for android shadow
-},
+  bottomBar: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5, // for android shadow
+  },
 
-qtyBox: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#F5F5F5',
-  paddingVertical: 10,
-  paddingHorizontal: 18,
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: '#DDD',
-},
+  qtyBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
 
-qtyBtnText: { fontSize: 26, fontWeight: '700', color: '#333' },
+  qtyBtnText: { fontSize: 26, fontWeight: '700', color: '#333' },
 
-qtyNumber: { fontSize: 20, fontWeight: '700', marginHorizontal: 14 },
+  qtyNumber: { fontSize: 20, fontWeight: '700', marginHorizontal: 14 },
 
-nextBtn: {
-  backgroundColor: '#DAAE58',
-  paddingVertical: 14,
-  paddingHorizontal: 28,
-  borderRadius: 14,
-  shadowColor: '#DAAE58',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 6,
-  elevation: 3,
-},
+  nextBtn: {
+    backgroundColor: '#DAAE58',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    shadowColor: '#DAAE58',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
 
-nextTxt: { fontSize: 18, fontWeight: '700', color: '#000' },
+  nextTxt: { fontSize: 18, fontWeight: '700', color: '#000' },
 
 });

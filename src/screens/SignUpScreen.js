@@ -35,10 +35,20 @@ export default function SignupScreen() {
     }
 
     try {
-      await signup(fullName, email, phone, password, role);
+      const signupData = {
+        name: fullName,
+        email,
+        phone,
+        password,
+        role,
+        // Add defaults for owner/driver if needed, or handle in backend
+        company: role === 'owner' ? `${fullName}'s Logistics` : undefined
+      };
+
+      await signup(signupData);
       // Navigation handled by App.js
     } catch (error) {
-      Alert.alert("Signup Failed", error.message);
+      Alert.alert("Signup Failed", error.message || "An error occurred during signup");
     }
   }
 
