@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,11 +17,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme/theme';
+import apiService from '../api/apiService';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading } = useAuth();
+  // useEffect(()=>{
+  //   const func = async() =>{
+  //     const res = await apiService.get('/reservation');
+  //     console.log('res',res);
+  //   }
+  //   func()
+  // },[])
   const navigation = useNavigation();
 
   const handleSubmit = async () => {
