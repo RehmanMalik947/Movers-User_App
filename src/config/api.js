@@ -9,14 +9,14 @@ const DEVICE_HOST_IP = '192.168.100.25'; // e.g. '192.168.1.5' when testing on p
 
 const getBaseUrl = () => {
   if (DEVICE_HOST_IP) {
-    return `http://${DEVICE_HOST_IP}:5001/api/`;
+    return `https://backendfyp-production-41c6.up.railway.app/api/`;
   }
   if (__DEV__) {
     return Platform.OS === 'android'
-      ? 'http://10.0.2.2:5001/api/'
-      : 'http://localhost:5001/api/';
+      ? 'https://backendfyp-production-41c6.up.railway.app/api/'
+      : 'https://backendfyp-production-41c6.up.railway.app/api/';
   }
-  return 'https://your-production-api.com/api/';
+  return 'https://backendfyp-production-41c6.up.railway.app/api/';
 };
 
 export const API_BASE_URL = getBaseUrl();
