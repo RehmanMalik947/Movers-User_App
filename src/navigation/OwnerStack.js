@@ -9,6 +9,8 @@ import OwnerDashboard from '../screens/owner/OwnerDashboard';
 import BidOnJobScreen from '../screens/owner/BidOnJobScreen';
 import AssignDriverScreen from '../screens/owner/AssignDriverScreen';
 import OwnerJobsScreen from '../screens/owner/OwnerJobsScreen';
+import MyTrucksScreen from '../screens/owner/MyTrucksScreen';
+import MyDriversScreen from '../screens/owner/MyDriversScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -20,6 +22,7 @@ function OwnerHomeStack() {
             <Stack.Screen name="OwnerDashboard" component={OwnerDashboard} />
             <Stack.Screen name="BidOnJob" component={BidOnJobScreen} />
             <Stack.Screen name="AssignDriver" component={AssignDriverScreen} />
+            <Stack.Screen name="MyJobs" component={OwnerJobsScreen} />
         </Stack.Navigator>
     );
 }
@@ -37,16 +40,26 @@ export default function OwnerStack() {
                 name="Dashboard"
                 component={OwnerHomeStack}
                 options={{
+                    title: 'Jobs',
                     tabBarIcon: ({ color }) => <Icon name="dashboard" size={24} color={color} />,
                 }}
             />
 
             <Tab.Screen
                 name="MyTrucks"
-                component={OwnerJobsScreen} // Placeholder, should be Truck Management
+                component={MyTrucksScreen}
                 options={{
-                    title: 'My Trucks',
+                    title: 'Trucks',
                     tabBarIcon: ({ color }) => <Icon name="local-shipping" size={24} color={color} />,
+                }}
+            />
+
+            <Tab.Screen
+                name="MyDrivers"
+                component={MyDriversScreen}
+                options={{
+                    title: 'Drivers',
+                    tabBarIcon: ({ color }) => <Icon name="people" size={24} color={color} />,
                 }}
             />
 

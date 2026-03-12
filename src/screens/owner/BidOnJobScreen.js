@@ -4,11 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { theme } from '../../theme/theme';
-import { mockApi } from '../../api/mockService';
-import { useAuth } from '../../context/AuthContext';
+import { jobApi, ownerApi } from '../../api/apiService';
 
 export default function BidOnJobScreen() {
-    const { user } = useAuth();
     const route = useRoute();
     const navigation = useNavigation();
     const { jobId } = route.params;
@@ -20,15 +18,20 @@ export default function BidOnJobScreen() {
 
     useEffect(() => {
         loadJob();
-    }, []);
+    }, [jobId]);
 
     const loadJob = async () => {
         try {
-            // Find job from "all available jobs" (mock)
-            // In real app, getJobById
-            const jobs = await mockApi.getAvailableJobs(); // This might only show CREATED/BIDDING, perfect.
-            const found = jobs.find(j => j.id === jobId);
-            setJob(found);
+            const raw = await jobApi.getOne(jobId);
+            const j = raw?.data ?? raw;
+            if (j) {
+                setJob({
+                    ...j,
+                    pickup: j.pickupLocation || j.pickup || '',
+                    dropoff: j.deliveryLocation || j.dropoff || '',
+                    vehicleType: j.truckType || j.vehicleType || '',
+                });
+            }
         } catch (error) {
             Alert.alert("Error", "Could not load job details");
         } finally {
@@ -37,18 +40,19 @@ export default function BidOnJobScreen() {
     };
 
     const handlePlaceBid = async () => {
-        if (!bidAmount) {
-            Alert.alert("Required", "Please enter a bid amount");
+        const price = parseFloat(bidAmount, 10);
+        if (!bidAmount || isNaN(price) || price <= 0) {
+            Alert.alert("Required", "Please enter a valid bid amount (Rs.)");
             return;
         }
 
         setSubmitting(true);
         try {
-            await mockApi.placeBid(jobId, user.id, parseInt(bidAmount));
-            Alert.alert("Success", "Bid Placed Successfully! User will be notified.");
+            await ownerApi.placeBid(jobId, { price });
+            Alert.alert("Success", "Bid placed! The customer will see your offer.");
             navigation.goBack();
         } catch (error) {
-            Alert.alert("Error", error.message);
+            Alert.alert("Error", error.message || "Failed to place bid");
         } finally {
             setSubmitting(false);
         }

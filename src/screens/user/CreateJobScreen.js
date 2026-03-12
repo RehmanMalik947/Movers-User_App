@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { theme } from '../../theme/theme';
-import { mockApi } from '../../api/mockService';
+import { jobApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -16,39 +16,59 @@ export default function CreateJobScreen() {
     const { pickup, dropoff } = useSelector(state => state.location);
 
     const [loading, setLoading] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
     // Form State
     const [title, setTitle] = useState('');
     const [goodsType, setGoodsType] = useState('');
-    const [vehicleType, setVehicleType] = useState('Shehzore');
+    const [categoryId, setCategoryId] = useState(null);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+    useEffect(() => {
+        let cancelled = false;
+        jobApi.getCategories().then((data) => {
+            const list = Array.isArray(data) ? data : (data?.data ?? []);
+            if (!cancelled) setCategories(list);
+        }).catch(() => { if (!cancelled) setCategories([]); });
+        return () => { cancelled = true; };
+    }, []);
+
+    const selectedCategory = categories.find((c) => c.id === categoryId);
+    const vehicleType = selectedCategory?.name || (categories[0]?.name) || '';
 
     const handlePostJob = async () => {
         if (!title || !pickup.address || !dropoff.address || !goodsType) {
             Alert.alert("Missing Fields", "Please fill in all required fields.");
             return;
         }
+        if (categories.length > 0 && !categoryId) {
+            Alert.alert("Missing Fields", "Please select a truck type.");
+            return;
+        }
 
         setLoading(true);
         try {
-            await mockApi.postJob({
-                userId: user.id,
+            await jobApi.create({
+                userId: String(user.id),
+                userName: user.name || 'Customer',
                 title,
                 pickup: pickup.address,
                 dropoff: dropoff.address,
-                pickupLat: pickup.latitude,
-                pickupLng: pickup.longitude,
-                dropoffLat: dropoff.latitude,
-                dropoffLng: dropoff.longitude,
+                pickupLocation: pickup.address,
+                deliveryLocation: dropoff.address,
                 goodsType,
-                vehicleType,
-                date,
+                vehicleType: selectedCategory?.name || vehicleType,
+                categoryId: categoryId != null ? categoryId : undefined,
+                date: date || new Date().toISOString().split('T')[0],
+                fare: 0,
+                distance: 0,
             });
             Alert.alert("Success", "Job Posted Successfully!");
             dispatch(resetLocations());
-            navigation.navigate('HomeMain'); // Go back to Dashboard
+            navigation.navigate('HomeMain');
         } catch (error) {
-            Alert.alert("Error", error.message);
+            Alert.alert("Error", error.message || "Failed to post job");
         } finally {
             setLoading(false);
         }
@@ -117,19 +137,36 @@ export default function CreateJobScreen() {
                     placeholderTextColor="#999"
                 />
 
-                <Text style={styles.sectionHeader}>Required Vehicle</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-                    {['Shehzore', 'Mazda', 'Suzuki Pickup', 'Trailor'].map(v => (
-                        <TouchableOpacity
-                            key={v}
-                            style={[styles.chip, vehicleType === v && styles.chipActive]}
-                            onPress={() => setVehicleType(v)}
-                        >
-                            <ImagePlaceholder />
-                            <Text style={[styles.chipText, vehicleType === v && styles.chipTextActive]}>{v}</Text>
+                <Text style={styles.sectionHeader}>Required Vehicle (Truck Type)</Text>
+                {categories.length === 0 ? (
+                    <Text style={styles.hint}>Loading categories…</Text>
+                ) : (
+                    <>
+                        <TouchableOpacity style={styles.dropdown} onPress={() => setShowCategoryPicker(true)}>
+                            <Text style={[styles.dropdownText, !categoryId && styles.dropdownPlaceholder]}>
+                                {selectedCategory ? selectedCategory.name : 'Select truck type'}
+                            </Text>
+                            <Icon name="arrow-drop-down" size={24} color="#666" />
                         </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                        <Modal visible={showCategoryPicker} transparent animationType="fade">
+                            <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowCategoryPicker(false)}>
+                                <View style={styles.pickerBox}>
+                                    <Text style={styles.pickerTitle}>Select truck type</Text>
+                                    {categories.map((c) => (
+                                        <TouchableOpacity
+                                            key={c.id}
+                                            style={[styles.pickerItem, categoryId === c.id && styles.pickerItemSelected]}
+                                            onPress={() => { setCategoryId(c.id); setShowCategoryPicker(false); }}
+                                        >
+                                            <Text style={styles.pickerItemText}>{c.name}</Text>
+                                            {categoryId === c.id ? <Icon name="check" size={20} color={theme.colors.primary} /> : null}
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+                    </>
+                )}
 
                 <TouchableOpacity
                     style={styles.submitBtn}
@@ -166,11 +203,16 @@ const styles = StyleSheet.create({
     locValue: { fontSize: 15, color: '#333', fontWeight: '500' },
     divider: { height: 1, backgroundColor: '#f0f0f0', marginLeft: 64 },
 
-    chipScroll: { flexDirection: 'row', overflow: 'visible' },
-    chip: { padding: 12, borderRadius: 12, backgroundColor: '#fff', marginRight: 12, width: 100, alignItems: 'center', borderWidth: 1, borderColor: 'transparent', elevation: 1 },
-    chipActive: { borderColor: theme.colors.secondary, backgroundColor: '#FFF8E1' },
-    chipText: { color: '#666', fontWeight: '600', fontSize: 12 },
-    chipTextActive: { color: theme.colors.secondary, fontWeight: 'bold' },
+    hint: { fontSize: 14, color: '#888', marginBottom: 8 },
+    dropdown: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0', elevation: 1 },
+    dropdownText: { fontSize: 16, color: '#333' },
+    dropdownPlaceholder: { color: '#999' },
+    pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
+    pickerBox: { backgroundColor: '#fff', borderRadius: 12, padding: 16, maxHeight: 320 },
+    pickerTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
+    pickerItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 8 },
+    pickerItemSelected: { backgroundColor: '#E8EAF6' },
+    pickerItemText: { fontSize: 16, color: '#333' },
 
     submitBtn: { marginTop: 40, backgroundColor: theme.colors.primary, padding: 18, borderRadius: 16, alignItems: 'center', elevation: 4, shadowColor: theme.colors.primary, shadowOpacity: 0.3, shadowOffset: { width: 0, height: 4 } },
     btnText: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.5 }

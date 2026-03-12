@@ -1,12 +1,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Base URL for API - Using local IP for physical devices or localhost for emulator
-// Replace with your machine's local IP if testing on a physical device
-const BASE_URL = 'http://192.168.100.31:5001/api/'; // Added trailing slash for correct Axios resolution
+import { API_BASE_URL } from '../config/api';
 
 const apiService = axios.create({
-    baseURL: BASE_URL, 
+    baseURL: API_BASE_URL, 
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
@@ -58,11 +55,27 @@ export const authApi = {
 };
 
 export const jobApi = {
-    getAll: () => apiService.get('jobs'),
+    getAll: (params) => apiService.get('jobs', { params }),
+    getMyJobs: (userId) => apiService.get('jobs', { params: { userId } }),
     getOne: (id) => apiService.get(`jobs/${id}`),
+    getCategories: () => apiService.get('jobs/categories'),
+    getBids: (jobId) => apiService.get(`jobs/${jobId}/bids`),
+    acceptBid: (jobId, bidId) => apiService.patch(`jobs/${jobId}/bids/${bidId}/accept`),
     create: (data) => apiService.post('jobs', data),
     update: (id, data) => apiService.put(`jobs/${id}`, data),
     delete: (id) => apiService.delete(`jobs/${id}`),
+};
+
+export const ownerApi = {
+    getTrucks: () => apiService.get('owner/trucks'),
+    addTruck: (data) => apiService.post('owner/trucks', data),
+    getDrivers: () => apiService.get('owner/drivers'),
+    addDriver: (data) => apiService.post('owner/drivers', data),
+    getCategories: () => apiService.get('owner/categories'),
+    getAvailableJobs: () => apiService.get('owner/jobs'),
+    getMyJobs: () => apiService.get('owner/my-jobs'),
+    placeBid: (jobId, data) => apiService.post(`owner/jobs/${jobId}/bid`, data),
+    assignDriver: (jobId, driverId) => apiService.patch(`owner/jobs/${jobId}/assign-driver`, { driver_id: driverId }),
 };
 
 export default apiService;

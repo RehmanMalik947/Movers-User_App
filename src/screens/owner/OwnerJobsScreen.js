@@ -2,10 +2,20 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { mockApi } from '../../api/mockService';
+import { ownerApi } from '../../api/apiService';
 import { theme } from '../../theme/theme';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+
+const mapJobToUI = (j) => ({
+  ...j,
+  id: j.id,
+  title: j.title || 'Job',
+  pickup: j.pickupLocation || j.pickup || '',
+  dropoff: j.deliveryLocation || j.dropoff || '',
+  status: (j.status || '').toUpperCase().replace('-', '_'),
+  driverId: j.driverId,
+});
 
 export default function OwnerJobsScreen() {
   const { user } = useAuth();
@@ -16,38 +26,11 @@ export default function OwnerJobsScreen() {
   const loadMyJobs = async () => {
     setLoading(true);
     try {
-      // In API we need a way to get *jobs I have won/bid on*.
-      // Mock API helper logic needed.
-      // For now, let's assume 'getAvailableJobs' filters only created/bidding.
-      // We need 'getOwnerJobs(ownerId)'.
-      // I'll simulate it by filtering all jobs in memory where 'ownerId' matches OR 'bid.ownerId' matches.
-      // But since I don't have that API exposed in mock, I'll update MockService later or now?
-      // Let's assume there's a helper or I use the same pattern:
-
-      // HACK: Fetch 'getAvailableJobs' won't work because status changed.
-      // I'll cheat and fetch ALL jobs if I could, but 'getAvailableJobs' only returns CREATED/BIDDING.
-      // I'll fetch user jobs for 'u1' to test? No.
-
-      // Let's add getOwnerAcceptedJobs to mockService or just rely on 'getUserJobs' if it wasn't by UserId.
-      // Oh wait, `mockApi.getUserJobs(userId)` gets by Creator.
-
-      // Let's add a quick client-side hack here:
-      // "I need to see jobs where *I* am the ownerId (after acceptance)"
-      // For now, I will just call mockApi.getAvailableJobs() BUT that filters by status.
-      // I will implement a quick internal helper in this file if needed, OR better:
-      // I will update mockService.js to include getOwnerJobs.
-      // But I cannot easily update mockService now without context switch.
-      // I'll stick to 'getAvailableJobs' mock logic modification or just assume the mock accepts an arg.
-
-      // Wait, I can just pretend 'getAvailableJobs' returns everything for now or I add a new function.
-      // I'll assume I added `getOwnerJobs` to mockService. I used `replace_file` before. 
-      // I'll add `getOwnerJobs` to mockService in next tool call if needed.
-      // For now, I'll write the UI assuming `mockApi.getOwnerJobs` exists.
-
-      const data = await mockApi.getOwnerJobs(user.id);
-      setJobs(data);
+      const data = await ownerApi.getMyJobs();
+      const list = Array.isArray(data) ? data : (data?.data ?? []);
+      setJobs(list.map(mapJobToUI));
     } catch (error) {
-      console.log("Mock API missing, falling back to empty");
+      console.error(error);
       setJobs([]);
     } finally {
       setLoading(false);
@@ -61,24 +44,22 @@ export default function OwnerJobsScreen() {
   );
 
   const renderItem = ({ item }) => {
-    const isActionRequired = item.status === 'ACCEPTED';
+    const needsDriver = item.status === 'ASSIGNED' && !item.driverId;
+    const isActionRequired = needsDriver;
 
     return (
       <TouchableOpacity
         style={[styles.card, isActionRequired && styles.highlight]}
         onPress={() => {
           if (isActionRequired) {
-            navigation.navigate('Dashboard', {
-              screen: 'AssignDriver',
-              params: { jobId: item.id },
-            });
+            navigation.navigate('AssignDriver', { jobId: item.id });
           }
         }}
       >
         <View style={styles.header}>
           <Text style={styles.title}>{item.title}</Text>
           <View style={[styles.badge, { backgroundColor: isActionRequired ? theme.colors.error : theme.colors.success }]}>
-            <Text style={styles.badgeText}>{item.status}</Text>
+            <Text style={styles.badgeText}>{item.status?.replace('_', ' ') || item.status}</Text>
           </View>
         </View>
 
@@ -93,12 +74,12 @@ export default function OwnerJobsScreen() {
 
         {isActionRequired && (
           <View style={styles.actionBanner}>
-            <Text style={styles.actionText}>Driver Assignment Needed!</Text>
+            <Text style={styles.actionText}>Assign driver → Tap to assign</Text>
           </View>
         )}
 
-        {item.status === 'ASSIGNED' && (
-          <Text style={styles.driverText}>Driver Assigned (ID: {item.driverId})</Text>
+        {item.driverId && (
+          <Text style={styles.driverText}>Driver assigned (ID: {item.driverId})</Text>
         )}
       </TouchableOpacity>
     );

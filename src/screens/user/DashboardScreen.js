@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { mockApi } from '../../api/mockService';
+import { jobApi } from '../../api/apiService';
 import { theme } from '../../theme/theme';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -16,14 +16,27 @@ export default function UserDashboard() {
     const loadJobs = async () => {
         setLoading(true);
         try {
-            const data = await mockApi.getUserJobs(user.id);
-            setJobs(data);
+            const data = await jobApi.getMyJobs(user.id);
+            const list = Array.isArray(data) ? data : (data?.data ?? []);
+            setJobs(list.map(mapJobToUI));
         } catch (error) {
             console.error(error);
+            setJobs([]);
         } finally {
             setLoading(false);
         }
     };
+
+    const mapJobToUI = (j) => ({
+        id: j.id,
+        title: j.title || `${j.pickupLocation || ''} → ${j.deliveryLocation || ''}`.trim() || 'Job',
+        pickup: j.pickupLocation || '',
+        dropoff: j.deliveryLocation || '',
+        vehicleType: j.truckType || 'Shehzore',
+        date: j.requestedDate || new Date().toISOString(),
+        status: (j.status || 'pending').toUpperCase().replace('-', '_'),
+        bids: j.bids || [],
+    });
 
     useFocusEffect(
         useCallback(() => {
@@ -33,9 +46,10 @@ export default function UserDashboard() {
 
     const renderJobItem = ({ item }) => {
         let statusColor = '#999';
-        if (item.status === 'BIDDING') statusColor = theme.colors.secondary;
+        if (item.status === 'BIDDING' || item.status === 'PENDING') statusColor = theme.colors.secondary;
         if (item.status === 'ACCEPTED') statusColor = theme.colors.success;
-        if (item.status === 'ASSIGNED') statusColor = theme.colors.primary;
+        if (item.status === 'ASSIGNED' || item.status === 'IN_PROGRESS') statusColor = theme.colors.primary;
+        if (item.status === 'COMPLETED') statusColor = theme.colors.success;
 
         return (
             <TouchableOpacity

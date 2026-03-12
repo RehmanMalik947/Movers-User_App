@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { mockApi } from '../../api/mockService';
-import { useAuth } from '../../context/AuthContext';
+import { ownerApi } from '../../api/apiService';
 import { theme } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function AssignDriverScreen() {
-    const { user } = useAuth();
     const route = useRoute();
     const navigation = useNavigation();
-    const { jobId } = route.params;
+    const { jobId } = route.params || {};
 
     const [drivers, setDrivers] = useState([]);
     const [selectedDriver, setSelectedDriver] = useState(null);
@@ -22,11 +20,13 @@ export default function AssignDriverScreen() {
     }, []);
 
     const loadDrivers = async () => {
-        // Mock API: getMyDrivers(ownerId)
-        // I define this in mockService but I need to ensure it's there. 
-        // Logic: drivers where user.ownerId === me.
-        const data = await mockApi.getMyDrivers(user.id);
-        setDrivers(data);
+        try {
+            const res = await ownerApi.getDrivers();
+            const data = res?.data ?? res ?? [];
+            setDrivers(Array.isArray(data) ? data : []);
+        } catch (e) {
+            setDrivers([]);
+        }
     };
 
     const handleAssign = async () => {
@@ -34,14 +34,18 @@ export default function AssignDriverScreen() {
             Alert.alert("Select Driver", "Please select a driver first.");
             return;
         }
+        if (!jobId) {
+            Alert.alert("Error", "Job not found.");
+            return;
+        }
 
         setLoading(true);
         try {
-            await mockApi.assignDriver(jobId, selectedDriver.id);
-            Alert.alert("Success", "Driver Assigned!");
+            await ownerApi.assignDriver(jobId, selectedDriver.id);
+            Alert.alert("Success", "Driver assigned to this job.");
             navigation.goBack();
         } catch (error) {
-            Alert.alert("Error", error.message);
+            Alert.alert("Error", error.message || "Failed to assign driver");
         } finally {
             setLoading(false);
         }
@@ -72,7 +76,7 @@ export default function AssignDriverScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.name}>{item.name}</Text>
-                            <Text style={styles.vehicle}>{item.vehicle || 'No Vehicle'}</Text>
+                            <Text style={styles.vehicle}>{item.phone ? `Phone: ${item.phone}` : '—'}</Text>
                         </View>
                         {selectedDriver?.id === item.id && <Icon name="check-circle" size={24} color={theme.colors.secondary} />}
                     </TouchableOpacity>

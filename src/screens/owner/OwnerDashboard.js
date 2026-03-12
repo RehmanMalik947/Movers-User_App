@@ -2,10 +2,21 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { mockApi } from '../../api/mockService';
+import { ownerApi } from '../../api/apiService';
 import { theme } from '../../theme/theme';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+
+const mapJobToUI = (j) => ({
+    ...j,
+    id: j.id,
+    title: j.title || 'Job',
+    pickup: j.pickupLocation || j.pickup || '',
+    dropoff: j.deliveryLocation || j.dropoff || '',
+    vehicleType: j.truckType || j.vehicleType || '',
+    goodsType: j.goodsType || '',
+    date: j.requestedDate || j.date || '',
+});
 
 export default function OwnerDashboard() {
     const { user } = useAuth();
@@ -16,10 +27,12 @@ export default function OwnerDashboard() {
     const loadJobs = async () => {
         setLoading(true);
         try {
-            const data = await mockApi.getAvailableJobs();
-            setJobs(data);
+            const data = await ownerApi.getAvailableJobs();
+            const list = Array.isArray(data) ? data : (data?.data ?? []);
+            setJobs(list.map(mapJobToUI));
         } catch (error) {
             console.error(error);
+            setJobs([]);
         } finally {
             setLoading(false);
         }
@@ -79,6 +92,15 @@ export default function OwnerDashboard() {
                 <Image source={require('../../assets/heavyTruck.png')} style={{ width: 40, height: 40 }} />
             </View>
 
+            <TouchableOpacity
+                style={styles.myJobsBtn}
+                onPress={() => navigation.navigate('MyJobs')}
+            >
+                <Icon name="assignment" size={20} color={theme.colors.primary} />
+                <Text style={styles.myJobsBtnText}>My Active Jobs</Text>
+                <Icon name="chevron-right" size={22} color="#666" />
+            </TouchableOpacity>
+
             <Text style={styles.sectionTitle}>Available Markets</Text>
 
             <FlatList
@@ -98,6 +120,9 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     welcomeText: { fontSize: 22, fontWeight: '700', color: '#333' },
     subText: { fontSize: 14, color: '#777' },
+
+    myJobsBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 20, elevation: 2, gap: 10 },
+    myJobsBtnText: { flex: 1, fontSize: 16, fontWeight: '600', color: '#333' },
 
     sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16, color: '#333' },
 

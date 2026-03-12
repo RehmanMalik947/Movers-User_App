@@ -16,33 +16,39 @@ import { useDispatch } from 'react-redux';
 
 const { width, height } = Dimensions.get('window');
 
-export default function DropoffLocationScreen() {
+const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY'; // Replace with your key; same as AndroidManifest geo API key if needed
 
+export default function DropoffLocationScreen() {
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const [region, setRegion] = useState({
     latitude: 31.5204,
     longitude: 74.3587,
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   });
-  const navigation = useNavigation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [markerAddress, setMarkerAddress] = useState('');
 
-  // Set custom header with navigation.setOptions
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      title: 'Dropoff Location',
+      headerStyle: { backgroundColor: '#DAAE58' },
+      headerTitleStyle: { color: '#000' },
+    });
+  }, [navigation]);
 
-
-  // Search Google Places API
   const searchLocation = async (text) => {
     setQuery(text);
     if (text.length < 3) {
       setResults([]);
       return;
     }
-
     try {
       const res = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${text}&key=YOUR_GOOGLE_API_KEY`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${GOOGLE_API_KEY}`
       );
       setResults(res.data.predictions || []);
     } catch (err) {
@@ -50,19 +56,35 @@ export default function DropoffLocationScreen() {
     }
   };
 
-  // Handle selection from autocomplete
+  const updateMarkerAddress = async (lat, lng) => {
+    try {
+      const res = await axios.get(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_API_KEY}`
+      );
+      const address = res.data.results?.[0]?.formatted_address || '';
+      setMarkerAddress(address);
+      setQuery(address);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const handleSelectLocation = async (item) => {
     try {
       const res = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?place_id=${item.place_id}&key=YOUR_GOOGLE_API_KEY`
+        `https://maps.googleapis.com/maps/api/geocode/json?place_id=${item.place_id}&key=${GOOGLE_API_KEY}`
       );
-      const location = res.data.results[0].geometry.location;
+      const result = res.data.results?.[0];
+      if (!result) return;
+      const location = result.geometry.location;
+      const formattedAddress = result.formatted_address || item.description;
       setRegion({
         ...region,
         latitude: location.lat,
         longitude: location.lng,
       });
-      setQuery(item.description);
+      setQuery(formattedAddress);
+      setMarkerAddress(formattedAddress);
       setResults([]);
     } catch (err) {
       console.log(err);
@@ -70,27 +92,16 @@ export default function DropoffLocationScreen() {
   };
 
   const handleConfirm = () => {
+    const address = markerAddress || query || 'Selected location';
     dispatch(
       setDropoffLocation({
         latitude: region.latitude,
         longitude: region.longitude,
-        address: query,
+        address,
       })
     );
-
     navigation.goBack();
   };
-
-  navigation.setOptions({
-    headerShown: true,
-    title: 'Dropoff Location',
-    headerStyle: {
-      backgroundColor: '#DAAE58',
-    },
-    headerTitleStyle: {
-      color: '#000', // optional (title color)
-    },
-  });
   return (
     <View style={{ flex: 1 }}>
       {/* Search Bar */}
@@ -125,8 +136,11 @@ export default function DropoffLocationScreen() {
         style={{ flex: 1 }}
         provider={PROVIDER_GOOGLE}
         region={region}
-        onRegionChangeComplete={(r) => setRegion(r)}
-        customMapStyle={mapStyle} // Optional: dark/light theme
+        onRegionChangeComplete={(r) => {
+          setRegion(r);
+          updateMarkerAddress(r.latitude, r.longitude);
+        }}
+        customMapStyle={mapStyle}
       >
         <Marker
           coordinate={{ latitude: region.latitude, longitude: region.longitude }}
@@ -141,7 +155,7 @@ export default function DropoffLocationScreen() {
       {/* Footer Panel */}
       <View style={styles.footer}>
         <Text style={styles.addressText}>
-          {query || 'Select drop-off location'}
+          {markerAddress || query || 'Move map or search to select drop-off location'}
         </Text>
         <TouchableOpacity style={styles.btn} onPress={handleConfirm}>
           <Text style={styles.btnText}>Confirm Drop-off Location</Text>

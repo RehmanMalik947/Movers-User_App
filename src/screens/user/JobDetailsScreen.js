@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme/theme';
-import { mockApi } from '../../api/mockService';
+import { jobApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -19,19 +19,30 @@ export default function JobDetailsScreen() {
         loadJob();
     }, []);
 
+    const mapJobToUI = (j) => {
+        if (!j) return null;
+        return {
+            ...j,
+            pickup: j.pickupLocation || j.pickup || '',
+            dropoff: j.deliveryLocation || j.dropoff || '',
+            vehicleType: j.truckType || j.vehicleType || '',
+            status: (j.status || 'pending').toUpperCase().replace('-', '_'),
+            bids: j.bids || [],
+        };
+    };
+
     const loadJob = async () => {
         try {
-            // In a real app we would have a specific getJobById API
-            // For now, we fetch all user jobs and find this one, or assume check local mock
-            // Let's cheat and use getUserJobs but filtered, or add a mockApi.getJob
-            const jobs = await mockApi.getUserJobs('u1'); // Assuming current user, but better to fix mockApi
-            // Actually, let's fix mockApi later if needed, but 'getUserJobs' returns array.
-            // Let's just find it in the global JOBS array in memory if I had access, but I don't.
-            // I'll fetch user jobs and find it.
-            const foundJob = jobs.find(j => j.id === jobId);
-            setJob(foundJob);
+            const [jobRes, bidsRes] = await Promise.all([
+                jobApi.getOne(jobId),
+                jobApi.getBids(jobId).catch(() => []),
+            ]);
+            const raw = jobRes?.data ?? jobRes;
+            const bids = Array.isArray(bidsRes) ? bidsRes : (bidsRes?.data ?? []);
+            setJob({ ...mapJobToUI(raw), bids });
         } catch (error) {
             Alert.alert("Error", "Could not load job details");
+            setJob(null);
         } finally {
             setLoading(false);
         }
@@ -40,11 +51,11 @@ export default function JobDetailsScreen() {
     const handleAcceptBid = async (bidId) => {
         setActionLoading(true);
         try {
-            await mockApi.acceptBid(jobId, bidId);
-            Alert.alert("Success", "Bid Accepted! Waiting for owner to assign driver.");
-            loadJob(); // Refresh
+            await jobApi.acceptBid(jobId, bidId);
+            Alert.alert("Success", "Bid accepted! The truck owner will be notified.");
+            loadJob();
         } catch (error) {
-            Alert.alert("Error", error.message);
+            Alert.alert("Error", error.message || "Failed to accept bid");
         } finally {
             setActionLoading(false);
         }
@@ -65,15 +76,16 @@ export default function JobDetailsScreen() {
             <ScrollView contentContainerStyle={styles.scroll}>
                 {/* Status Banner */}
                 <View style={[styles.statusBanner,
-                job.status === 'BIDDING' ? { backgroundColor: theme.colors.secondary } :
+                (job.status === 'BIDDING' || job.status === 'PENDING') ? { backgroundColor: theme.colors.secondary } :
                     job.status === 'ACCEPTED' ? { backgroundColor: theme.colors.success } :
                         { backgroundColor: theme.colors.primary }
                 ]}>
-                    <Text style={styles.statusText}>{job.status}</Text>
+                    <Text style={styles.statusText}>{job.status?.replace('_', ' ') || job.status}</Text>
                     <Text style={styles.statusSub}>
-                        {job.status === 'BIDDING' ? 'Waiting for you to accept a bid' :
+                        {(job.status === 'BIDDING' || job.status === 'PENDING') ? 'Waiting for bids' :
                             job.status === 'ACCEPTED' ? 'Owner needs to assign a driver' :
-                                'Job is in progress'}
+                                job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS' ? 'Job is in progress' :
+                                    job.status === 'COMPLETED' ? 'Completed' : '—'}
                     </Text>
                 </View>
 
@@ -111,24 +123,24 @@ export default function JobDetailsScreen() {
                 </View>
 
                 {/* Bids Section */}
-                <Text style={styles.sectionTitle}>Bids Received ({job.bids.length})</Text>
+                <Text style={styles.sectionTitle}>Bids Received ({job.bids?.length ?? 0})</Text>
 
-                {job.bids.length === 0 ? (
-                    <Text style={styles.emptyText}>No bids yet. Check back later.</Text>
+                {!job.bids?.length ? (
+                    <Text style={styles.emptyText}>No bids yet. Truck owners with matching trucks can place bids.</Text>
                 ) : (
                     job.bids.map(bid => (
                         <View key={bid.id} style={styles.bidCard}>
                             <View>
-                                <Text style={styles.bidOwner}>Truck Owner #{bid.ownerId}</Text>
-                                <Text style={styles.bidAmount}>Rs. {bid.amount}</Text>
+                                <Text style={styles.bidOwner}>{bid.truck_owner_name || `Owner #${bid.truck_owner_id}`}</Text>
+                                <Text style={styles.bidAmount}>Rs. {bid.price}</Text>
                             </View>
 
-                            {bid.status === 'ACCEPTED' ? (
+                            {(bid.status || '').toLowerCase() === 'accepted' ? (
                                 <View style={styles.acceptedBadge}>
                                     <Icon name="check" size={16} color="#fff" />
                                     <Text style={styles.acceptedText}>ACCEPTED</Text>
                                 </View>
-                            ) : job.status === 'CREATED' || job.status === 'BIDDING' ? (
+                            ) : (job.status === 'PENDING' || job.status === 'BIDDING' || (job.status || '').toLowerCase() === 'pending') ? (
                                 <TouchableOpacity
                                     style={styles.acceptBtn}
                                     onPress={() => handleAcceptBid(bid.id)}
@@ -137,7 +149,7 @@ export default function JobDetailsScreen() {
                                     <Text style={styles.acceptBtnText}>Accept</Text>
                                 </TouchableOpacity>
                             ) : (
-                                <Text style={styles.rejectedText}>{bid.status}</Text>
+                                <Text style={styles.rejectedText}>{bid.status || '—'}</Text>
                             )}
                         </View>
                     ))
