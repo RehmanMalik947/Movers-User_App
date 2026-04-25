@@ -78,4 +78,8 @@ export const ownerApi = {
     assignDriver: (jobId, driverId) => apiService.patch(`owner/jobs/${jobId}/assign-driver`, { driver_id: driverId }),
 };
 
+export const chatApi = {
+    askAi: (message, history = []) => apiService.post('chat/ask', { message, history }),
+};
+
 export default apiService;

@@ -16,6 +16,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import PickupLocationScreen from '../screens/setPickup';
 import DropoffLocationScreen from '../screens/DropoffLocation';
 import PlaceOrderScreen from '../screens/PlaceOrderScreen';
+import AIChatbotScreen from '../screens/user/AIChatbotScreen';
 
 // Theme
 import { theme } from '../theme/theme';
@@ -117,13 +118,13 @@ export default function UserStack() {
                 })}
             />
 
-            {/* CHATS */}
+            {/* AI CHATBOT */}
             <Tab.Screen
-                name="Chats"
-                component={ChatScreen}
+                name="AI Help"
+                component={AIChatbotScreen}
                 options={{
                     tabBarIcon: ({ color }) => (
-                        <Icon name="chat-bubble-outline" size={24} color={color} />
+                        <Icon name="smart-toy" size={24} color={color} />
                     ),
                 }}
             />
