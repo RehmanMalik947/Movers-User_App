@@ -6,6 +6,8 @@ import { mockApi } from '../../api/mockService';
 import { theme } from '../../theme/theme';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { chatApi } from '../../api/apiService';
+import { Alert } from 'react-native';
 
 export default function DriverDashboard() {
     const { user } = useAuth();
@@ -22,6 +24,28 @@ export default function DriverDashboard() {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleContactOwner = async () => {
+        if (!user.truckOwnerId) {
+            Alert.alert("Notice", "No truck owner assigned to your profile.");
+            return;
+        }
+        try {
+            const chatRes = await chatApi.startChat(user.id, user.truckOwnerId, 'driver-owner');
+            if (chatRes.success) {
+                navigation.navigate('Messaging', {
+                    chatId: chatRes.data.id,
+                    otherId: user.truckOwnerId,
+                    otherName: user.truckOwnerName || 'Truck Owner',
+                    myId: user.id,
+                    myName: user.name,
+                    myRole: 'Driver'
+                });
+            }
+        } catch (error) {
+            Alert.alert("Error", "Could not start chat");
         }
     };
 
@@ -74,9 +98,10 @@ export default function DriverDashboard() {
                     <Text style={styles.welcomeText}>Hello, Captain {user?.name}</Text>
                     <Text style={styles.subText}>Ready to move?</Text>
                 </View>
-                <View style={styles.avatar}>
-                    <Icon name="local-shipping" size={24} color="#fff" />
-                </View>
+                <TouchableOpacity style={styles.avatar} onPress={handleContactOwner}>
+                    <Icon name="chat" size={24} color="#fff" />
+                    <Text style={{ fontSize: 9, color: '#fff', position: 'absolute', bottom: -12 }}>Owner</Text>
+                </TouchableOpacity>
             </View>
 
             <Text style={styles.sectionTitle}>My Assignments</Text>

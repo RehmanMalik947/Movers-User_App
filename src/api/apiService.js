@@ -80,6 +80,13 @@ export const ownerApi = {
 
 export const chatApi = {
     askAi: (message, history = []) => apiService.post('chat/ask', { message, history }),
+    startChat: (participant1Id, participant2Id, chatType) => apiService.post('chat/start', { participant1Id, participant2Id, chatType }),
+    getMyChats: (myId) => apiService.get(`chat/my-chats/${myId}`),
+    getHistory: (chatId) => apiService.get(`chat/history/${chatId}`),
+    uploadVoice: (formData) => apiService.post('chat/upload-voice', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    getAvailablePartners: (myId, role) => apiService.get(`chat/available-partners/${myId}/${role}`),
 };
 
 export default apiService;

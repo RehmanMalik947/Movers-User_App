@@ -79,7 +79,7 @@ export default function LoginScreen() {
               <View style={styles.inputContainer}>
                 <Icon name="mail-outline" size={20} color="#DAAE58" />
                 <TextInput
-                  placeholder="Email"
+                  placeholder="Email / Phone (Driver)"
                   placeholderTextColor="#888"
                   style={styles.input}
                   value={email}
@@ -93,7 +93,7 @@ export default function LoginScreen() {
               <View style={styles.inputContainer}>
                 <Icon name="lock-closed-outline" size={20} color="#DAAE58" />
                 <TextInput
-                  placeholder="Password"
+                  placeholder="Password / CNIC (Driver)"
                   secureTextEntry
                   placeholderTextColor="#888"
                   style={styles.input}

@@ -5,6 +5,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { theme } from '../../theme/theme';
 import { mockApi } from '../../api/mockService';
+import { chatApi } from '../../api/apiService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ActiveJobScreen() {
     const route = useRoute();
@@ -14,6 +16,7 @@ export default function ActiveJobScreen() {
     const [job, setJob] = useState(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
+    const { user: currentUser } = useAuth();
 
     useEffect(() => {
         loadJob();
@@ -56,6 +59,32 @@ export default function ActiveJobScreen() {
             Alert.alert("Updated", `Job marked as ${newStatus}`);
         } catch (error) {
             Alert.alert("Error", error.message);
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleChatWithCustomer = async () => {
+        if (!job.customer_id && !job.userId) { // fallback check
+            Alert.alert("Notice", "Customer information not found.");
+            return;
+        }
+        setUpdating(true);
+        const customerId = job.customer_id || job.userId;
+        try {
+            const chatRes = await chatApi.startChat(currentUser.id, customerId, 'user-driver');
+            if (chatRes.success) {
+                navigation.navigate('Messaging', {
+                    chatId: chatRes.data.id,
+                    otherId: customerId,
+                    otherName: job.customer_name || 'Customer',
+                    myId: currentUser.id,
+                    myName: currentUser.name,
+                    myRole: 'Driver'
+                });
+            }
+        } catch (error) {
+            Alert.alert("Error", "Could not start chat");
         } finally {
             setUpdating(false);
         }
@@ -115,6 +144,16 @@ export default function ActiveJobScreen() {
                     </View>
                 </View>
 
+                {/* Chat Button */}
+                <TouchableOpacity 
+                    style={styles.chatButton} 
+                    onPress={handleChatWithCustomer}
+                    disabled={updating}
+                >
+                    <Icon name="chat" size={24} color="#fff" />
+                    <Text style={styles.chatButtonText}>Chat with Customer</Text>
+                </TouchableOpacity>
+
                 {action ? (
                     <TouchableOpacity
                         style={styles.bigBtn}
@@ -159,5 +198,20 @@ const styles = StyleSheet.create({
     btnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
 
     completedBox: { backgroundColor: theme.colors.success, padding: 20, borderRadius: 12, alignItems: 'center' },
-    completedText: { color: '#fff', fontWeight: 'bold', fontSize: 18 }
+    completedText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
+    chatButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#4CAF50',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 20,
+    },
+    chatButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 18,
+        marginLeft: 10,
+    }
 });

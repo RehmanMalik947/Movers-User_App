@@ -5,6 +5,8 @@ import { theme } from '../../theme/theme';
 import { jobApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
+import { chatApi } from '../../api/apiService';
 
 export default function JobDetailsScreen() {
     const route = useRoute();
@@ -14,6 +16,7 @@ export default function JobDetailsScreen() {
     const [job, setJob] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
+    const { user: currentUser } = useAuth();
 
     useEffect(() => {
         loadJob();
@@ -61,6 +64,31 @@ export default function JobDetailsScreen() {
         }
     };
 
+    const handleChatWithDriver = async () => {
+        if (!job.driver_id) {
+            Alert.alert("Notice", "Driver not assigned yet.");
+            return;
+        }
+        setActionLoading(true);
+        try {
+            const chatRes = await chatApi.startChat(currentUser.id, job.driver_id, 'user-driver');
+            if (chatRes.success) {
+                navigation.navigate('Messaging', {
+                    chatId: chatRes.data.id,
+                    otherId: job.driver_id,
+                    otherName: job.driver_name || 'Driver',
+                    myId: currentUser.id,
+                    myName: currentUser.name,
+                    myRole: 'User'
+                });
+            }
+        } catch (error) {
+            Alert.alert("Error", "Could not start chat");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     if (loading) return <ActivityIndicator style={styles.center} color={theme.colors.primary} />;
     if (!job) return <View style={styles.center}><Text>Job not found</Text></View>;
 
@@ -88,6 +116,18 @@ export default function JobDetailsScreen() {
                                     job.status === 'COMPLETED' ? 'Completed' : '—'}
                     </Text>
                 </View>
+
+                {/* Chat with Driver Button */}
+                {(job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS') && (
+                    <TouchableOpacity 
+                        style={styles.chatButton} 
+                        onPress={handleChatWithDriver}
+                        disabled={actionLoading}
+                    >
+                        <Icon name="chat" size={20} color="#fff" />
+                        <Text style={styles.chatButtonText}>Chat with Driver</Text>
+                    </TouchableOpacity>
+                )}
 
                 {/* Info Card */}
                 <View style={styles.card}>
@@ -193,5 +233,21 @@ const styles = StyleSheet.create({
 
     acceptedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.success, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
     acceptedText: { color: '#fff', fontWeight: 'bold', fontSize: 12, marginLeft: 4 },
-    rejectedText: { color: '#ccc', fontSize: 12 }
+    rejectedText: { color: '#ccc', fontSize: 12 },
+    chatButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#4CAF50',
+        padding: 14,
+        borderRadius: 12,
+        marginBottom: 20,
+        elevation: 2,
+    },
+    chatButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginLeft: 8,
+    }
 });

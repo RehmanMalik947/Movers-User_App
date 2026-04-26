@@ -12,6 +12,8 @@ import OwnerJobsScreen from '../screens/owner/OwnerJobsScreen';
 import MyTrucksScreen from '../screens/owner/MyTrucksScreen';
 import MyDriversScreen from '../screens/owner/MyDriversScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import MessagingScreen from '../screens/MessagingScreen';
+import ChatStack from './ChatStack';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -23,6 +25,7 @@ function OwnerHomeStack() {
             <Stack.Screen name="BidOnJob" component={BidOnJobScreen} />
             <Stack.Screen name="AssignDriver" component={AssignDriverScreen} />
             <Stack.Screen name="MyJobs" component={OwnerJobsScreen} />
+            <Stack.Screen name="Messaging" component={MessagingScreen} />
         </Stack.Navigator>
     );
 }
@@ -60,6 +63,14 @@ export default function OwnerStack() {
                 options={{
                     title: 'Drivers',
                     tabBarIcon: ({ color }) => <Icon name="people" size={24} color={color} />,
+                }}
+            />
+
+            <Tab.Screen
+                name="Messages"
+                component={ChatStack}
+                options={{
+                    tabBarIcon: ({ color }) => <Icon name="chat" size={24} color={color} />,
                 }}
             />
 

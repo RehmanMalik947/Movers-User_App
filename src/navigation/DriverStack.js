@@ -9,6 +9,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DriverDashboard from '../screens/driver/DriverDashboard';
 import ActiveJobScreen from '../screens/driver/ActiveJobScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import MessagingScreen from '../screens/MessagingScreen';
+import ChatStack from './ChatStack';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -18,6 +20,7 @@ function DriverHomeStack() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="DriverDashboard" component={DriverDashboard} />
             <Stack.Screen name="ActiveJob" component={ActiveJobScreen} />
+            <Stack.Screen name="Messaging" component={MessagingScreen} />
         </Stack.Navigator>
     );
 }
@@ -36,6 +39,13 @@ export default function DriverStack() {
                 component={DriverHomeStack}
                 options={{
                     tabBarIcon: ({ color }) => <Icon name="local-shipping" size={24} color={color} />
+                }}
+            />
+            <Tab.Screen
+                name="Messages"
+                component={ChatStack}
+                options={{
+                    tabBarIcon: ({ color }) => <Icon name="chat" size={24} color={color} />
                 }}
             />
             <Tab.Screen

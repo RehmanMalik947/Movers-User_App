@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useFocusEffect } from '@react-navigation/native';
-import { ownerApi } from '../../api/apiService';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { ownerApi, chatApi } from '../../api/apiService';
+import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../theme/theme';
 
 export default function MyDriversScreen() {
@@ -29,6 +30,8 @@ export default function MyDriversScreen() {
     cnic: '',
     licence_number: '',
   });
+  const navigation = useNavigation();
+  const { user: currentUser } = useAuth();
 
   const loadDrivers = async () => {
     setLoading(true);
@@ -73,6 +76,24 @@ export default function MyDriversScreen() {
     }
   };
 
+  const handleChatWithDriver = async (driver) => {
+    try {
+      const chatRes = await chatApi.startChat(currentUser.id, driver.id, 'driver-owner');
+      if (chatRes.success) {
+        navigation.navigate('Messaging', {
+          chatId: chatRes.data.id,
+          otherId: driver.id,
+          otherName: driver.name,
+          myId: currentUser.id,
+          myName: currentUser.name,
+          myRole: 'TruckOwner'
+        });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not start chat');
+    }
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.avatar}>
@@ -86,6 +107,9 @@ export default function MyDriversScreen() {
       <View style={[styles.statusBadge, item.status === 'active' ? styles.activeBadge : styles.inactiveBadge]}>
         <Text style={styles.statusText}>{item.status || 'active'}</Text>
       </View>
+      <TouchableOpacity style={styles.chatIconBtn} onPress={() => handleChatWithDriver(item)}>
+        <Icon name="chat" size={24} color={theme.colors.secondary} />
+      </TouchableOpacity>
     </View>
   );
 
@@ -199,4 +223,10 @@ const styles = StyleSheet.create({
   submitBtn: { marginHorizontal: 16, marginTop: 16, backgroundColor: theme.colors.primary, padding: 16, borderRadius: 12, alignItems: 'center' },
   submitDisabled: { opacity: 0.7 },
   submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  chatIconBtn: {
+    marginLeft: 10,
+    padding: 8,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+  }
 });
