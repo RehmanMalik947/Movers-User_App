@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,103 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme/theme';
 
+const { height, width } = Dimensions.get('window');
+
+// ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
+const C = {
+  primary: '#1847B1', // Deep navy blue - Sign Up button background
+  primaryStandard: '#2260D9', // Standard primary blue - focused input borders, links, icons
+  primaryLight: '#E8EFFD', // Light blue tint - role buttons, logo ring
+  bg: '#F8FAFC', // Cool Gray Background
+  surface: '#FFFFFF', // White
+  surfaceAlt: '#F8FAFC', // Light background
+  textHead: '#0F172A', // Dark text
+  textBody: '#334155', // Body text
+  textMuted: '#64748B', // Muted text
+  textLink: '#2260D9', // Standard blue for links
+  border: '#E2E8F0', // Border color
+  borderFocus: '#2260D9', // Focus border - Standard blue
+  divider: '#E2E8F0', // Divider color
+  white: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+};
+
+// ─── Animated Input Component ─────────────────────────────────────────────────────
+function FloatInput({
+  icon,
+  placeholder,
+  value,
+  onChangeText,
+  secureTextEntry,
+  keyboardType,
+}) {
+  const [focused, setFocused] = useState(false);
+  const anim = useRef(new Animated.Value(0)).current;
+
+  const onFocus = () => {
+    setFocused(true);
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  };
+  const onBlur = () => {
+    setFocused(false);
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const borderColor = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [C.border, C.borderFocus],
+  });
+  const bgColor = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [C.surfaceAlt, C.white],
+  });
+
+  return (
+    <Animated.View
+      style={[styles.inputRow, { borderColor, backgroundColor: bgColor }]}
+    >
+      <Icon
+        name={icon}
+        size={18}
+        color={focused ? C.primaryStandard : C.textMuted}
+        style={styles.inputIcon}
+      />
+      <TextInput
+        placeholder={placeholder}
+        placeholderTextColor={C.textMuted}
+        style={styles.inputText}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        autoCapitalize="none"
+        keyboardType={keyboardType || 'default'}
+        secureTextEntry={secureTextEntry || false}
+      />
+    </Animated.View>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────────
 export default function SignupScreen() {
   const navigation = useNavigation();
   const { signup, isLoading } = useAuth();
@@ -28,9 +116,47 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user'); // 'user' | 'owner'
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 70,
+        friction: 10,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const handleSubmit = async () => {
     if (!fullName || !email || !phone || !password) {
-      Alert.alert("Error", "Please fill all fields");
+      Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    // Phone validation (basic)
+    if (phone.length < 10) {
+      Alert.alert('Error', 'Please enter a valid phone number');
+      return;
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
@@ -41,255 +167,380 @@ export default function SignupScreen() {
         phone,
         password,
         role,
-        // Add defaults for owner/driver if needed, or handle in backend
-        company: role === 'owner' ? `${fullName}'s Logistics` : undefined
+        company: role === 'owner' ? `${fullName}'s Logistics` : undefined,
       };
 
       await signup(signupData);
       // Navigation handled by App.js
     } catch (error) {
-      Alert.alert("Signup Failed", error.message || "An error occurred during signup");
+      Alert.alert(
+        'Signup Failed',
+        error.message || 'An error occurred during signup',
+      );
     }
-  }
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.container}>
+        <View style={styles.container}>
+          {/* ── Logo block ── */}
+          <Animated.View
+            style={[
+              styles.logoBlock,
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+            ]}
+          >
+            <View style={styles.logoCircle}>
+              <Image
+                source={require('../assets/heavyTruck.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.appName}>Movers</Text>
+            <Text style={styles.appTagline}>Join the moving community</Text>
+          </Animated.View>
 
-            {/* Logo */}
-            <Image
-              source={require('../assets/heavyTruck.png')}
-              style={styles.logo}
-            />
+          {/* ── Form card ── */}
+          <Animated.View
+            style={[
+              styles.card,
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+            ]}
+          >
+            <Text style={styles.cardTitle}>Create your account</Text>
 
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Sign up to get started</Text>
-
-            <View style={styles.card}>
-
-              {/* Role Selection */}
-              <View style={styles.roleContainer}>
-                <Text style={styles.roleLabel}>I am a:</Text>
-                <View style={styles.roleRow}>
-                  <TouchableOpacity
-                    style={[styles.roleBtn, role === 'user' && styles.roleBtnActive]}
-                    onPress={() => setRole('user')}
+            {/* Role Selection */}
+            <View style={styles.roleContainer}>
+              <View style={styles.roleRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    role === 'user' && styles.roleBtnActive,
+                  ]}
+                  onPress={() => setRole('user')}
+                  activeOpacity={0.7}
+                >
+                  <Icon
+                    name="person-outline"
+                    size={16}
+                    color={role === 'user' ? C.primaryStandard : C.textMuted}
+                    style={styles.roleIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.roleText,
+                      role === 'user' && styles.roleTextActive,
+                    ]}
                   >
-                    <Text style={[styles.roleText, role === 'user' && styles.roleTextActive]}>Customer</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.roleBtn, role === 'owner' && styles.roleBtnActive]}
-                    onPress={() => setRole('owner')}
+                    Customer
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    role === 'owner' && styles.roleBtnActive,
+                  ]}
+                  onPress={() => setRole('owner')}
+                  activeOpacity={0.7}
+                >
+                  <Icon
+                    name="business-outline"
+                    size={16}
+                    color={role === 'owner' ? C.primaryStandard : C.textMuted}
+                    style={styles.roleIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.roleText,
+                      role === 'owner' && styles.roleTextActive,
+                    ]}
                   >
-                    <Text style={[styles.roleText, role === 'owner' && styles.roleTextActive]}>Truck Owner</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Full Name */}
-              <View style={styles.inputContainer}>
-                <Icon name="person-outline" size={20} color="#DAAE58" />
-                <TextInput
-                  placeholder="Full Name"
-                  placeholderTextColor="#888"
-                  style={styles.input}
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
-              </View>
-
-              {/* Email */}
-              <View style={styles.inputContainer}>
-                <Icon name="mail-outline" size={20} color="#DAAE58" />
-                <TextInput
-                  placeholder="Email Address"
-                  placeholderTextColor="#888"
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              </View>
-
-
-              {/* Phone */}
-              <View style={styles.inputContainer}>
-                <Icon name="call-outline" size={20} color="#DAAE58" />
-                <TextInput
-                  placeholder="Phone Number"
-                  placeholderTextColor="#888"
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-
-              {/* Password */}
-              <View style={styles.inputContainer}>
-                <Icon name="lock-closed-outline" size={20} color="#DAAE58" />
-                <TextInput
-                  placeholder="Password"
-                  secureTextEntry
-                  placeholderTextColor="#888"
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                />
-              </View>
-
-              {/* Signup Button */}
-              <TouchableOpacity
-                onPress={handleSubmit}
-                style={styles.signupBtn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.signupText}>Sign Up</Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Login Link */}
-              <View style={styles.loginRow}>
-                <Text style={styles.loginGrey}>Already have an account?</Text>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                  <Text style={styles.loginLink}> Login</Text>
+                    Truck Owner
+                  </Text>
                 </TouchableOpacity>
               </View>
-
             </View>
-          </View>
-        </ScrollView>
+
+            <FloatInput
+              icon="person-outline"
+              placeholder="Full Name"
+              value={fullName}
+              onChangeText={setFullName}
+            />
+            <FloatInput
+              icon="mail-outline"
+              placeholder="Email Address"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+            />
+            <FloatInput
+              icon="call-outline"
+              placeholder="Phone Number"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+            <FloatInput
+              icon="lock-closed-outline"
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity
+              style={[styles.signupBtn, isLoading && { opacity: 0.75 }]}
+              onPress={handleSubmit}
+              disabled={isLoading}
+              activeOpacity={0.88}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={C.white} />
+              ) : (
+                <View style={styles.signupBtnInner}>
+                  <Text style={styles.signupBtnText}>Sign Up</Text>
+                  <Icon
+                    name="arrow-forward-outline"
+                    size={17}
+                    color={C.white}
+                  />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerLabel}>Already have an account?</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.loginBtn}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.loginBtnText}>Sign In Instead</Text>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* ── Footer ── */}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+// ─── Styles ─────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
+
+  keyboardView: {
+    flex: 1,
+  },
+
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: 40,
-    alignItems: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+    justifyContent: 'space-between',
   },
 
-  logo: {
+  logoBlock: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  logoCircle: {
     width: 80,
     height: 80,
-    marginBottom: 10,
+    borderRadius: 40,
+    backgroundColor: C.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    borderWidth: 2,
+    borderColor: C.primaryLight,
   },
-
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#2A2A2A',
-    marginBottom: 4,
+  logo: {
+    width: 50,
+    height: 50,
   },
-
-  subtitle: {
-    fontSize: 14,
-    color: '#777',
-    marginBottom: 20,
+  appName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.textHead,
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+  appTagline: {
+    fontSize: 12,
+    color: C.textMuted,
   },
 
   card: {
     width: '100%',
-    backgroundColor: '#F5F8FF',
+    backgroundColor: C.surface,
     borderRadius: 20,
     padding: 20,
-    paddingVertical: 20,
-    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: C.divider,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: C.textHead,
+    marginBottom: 16,
   },
 
   roleContainer: {
-    marginBottom: 15,
+    marginBottom: 16,
   },
   roleLabel: {
-    fontSize: 14,
-    color: '#444',
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.textBody,
     marginBottom: 8,
-    fontWeight: '600'
   },
   roleRow: {
     flexDirection: 'row',
-    gap: 10
+    gap: 10,
   },
   roleBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: '#fff'
-  },
-  roleBtnActive: {
-    borderColor: theme.colors.secondary,
-    backgroundColor: '#FFF8E1'
-  },
-  roleText: {
-    color: '#666',
-    fontWeight: '600'
-  },
-  roleTextActive: {
-    color: theme.colors.secondary
-  },
-
-  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#E8EAF2',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    borderRadius: 12,
+    backgroundColor: C.white,
+    gap: 6,
+  },
+  roleBtnActive: {
+    borderColor: C.primaryStandard,
+    backgroundColor: C.primaryLight,
+  },
+  roleIcon: {
+    marginRight: 2,
+  },
+  roleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.textMuted,
+  },
+  roleTextActive: {
+    color: C.primaryStandard,
   },
 
-  input: {
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 48,
+    borderWidth: 1.5,
+    marginBottom: 12,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  inputText: {
     flex: 1,
-    marginLeft: 10,
-    color: '#000',
+    fontSize: 14,
+    color: C.textBody,
   },
 
   signupBtn: {
-    backgroundColor: '#E6A940',
-    paddingVertical: 14,
-    borderRadius: 16,
+    height: 48,
+    backgroundColor: C.primary,
+    borderRadius: 14,
     alignItems: 'center',
-    marginTop: 10,
-  },
-
-  signupText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
-  loginRow: {
-    flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-
-  loginGrey: {
-    color: '#666',
+  signupBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-
-  loginLink: {
-    color: '#DAAE58',
+  signupBtnText: {
+    color: C.white,
+    fontSize: 15,
     fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: C.divider,
+  },
+  dividerLabel: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500',
+  },
+
+  loginBtn: {
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: C.primaryStandard,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.primaryStandard,
+  },
+
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  shieldBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  footerText: {
+    fontSize: 10,
+    color: C.textMuted,
   },
 });

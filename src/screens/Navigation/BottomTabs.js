@@ -2,8 +2,8 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import Icon2 from 'react-native-vector-icons/FontAwesome';
+import Icon from 'react-native-vector-icons/Ionicons';
+import Icon2 from 'react-native-vector-icons/FontAwesome5';
 
 import HomeScreen from '../HomeScreen';
 import TrackingScreen from '../TrackingScreen';
@@ -17,25 +17,53 @@ import OwnerRequestsScreen from '../owner/OwnerRequestsScreen';
 import OwnerRequestDetailScreen from '../owner/OwnerRequestDetailScreen';
 import OwnerJobsScreen from '../owner/OwnerJobsScreen';
 
+// ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
+const C = {
+  primary: '#1847B1',        // Deep navy blue
+  primaryStandard: '#2260D9', // Standard primary blue
+  primaryLight: '#E8EFFD',    // Light blue tint
+  bg: '#F8FAFC',              // Cool Gray Background
+  surface: '#FFFFFF',         // White
+  textHead: '#0F172A',        // Dark text
+  textMuted: '#64748B',       // Muted text
+  border: '#E2E8F0',          // Border color
+  white: '#FFFFFF',
+  active: '#2260D9',          // Active tab color
+  inactive: '#94A3B8',        // Inactive tab color
+};
+
 const Tab = createBottomTabNavigator();
 const HomeStackNav = createNativeStackNavigator();
 const OwnerStackNav = createNativeStackNavigator();
 
 const DummyScreen = ({ title }) => (
   <View style={styles.dummy}>
-    <Text style={{ fontSize: 18 }}>{title}</Text>
+    <View style={styles.dummyIconBg}>
+      <Icon name="rocket-outline" size={40} color={C.primaryStandard} />
+    </View>
+    <Text style={styles.dummyTitle}>{title}</Text>
+    <Text style={styles.dummySubtitle}>Coming Soon</Text>
   </View>
 );
 
-const CustomTabBarButton = ({ children, onPress }) => (
-  <TouchableOpacity
-    style={styles.centerButtonWrapper}
-    onPress={onPress}
-    activeOpacity={0.9}
-  >
-    <View style={styles.centerButton}>{children}</View>
-  </TouchableOpacity>
-);
+const CustomTabBarButton = ({ children, onPress, accessibilityState }) => {
+  const isFocused = accessibilityState?.selected;
+
+  return (
+    <TouchableOpacity
+      style={styles.centerButtonWrapper}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <View style={[
+        styles.centerButton,
+        isFocused && styles.centerButtonFocused
+      ]}>
+        {children}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 function HomeStack() {
   return (
@@ -45,23 +73,19 @@ function HomeStack() {
   );
 }
 
-// 🔹 NEW: Truck Owner Stack
 function OwnerHomeStack() {
   return (
     <OwnerStackNav.Navigator screenOptions={{ headerShown: false }}>
       <OwnerStackNav.Screen name="OwnerHomeMain" component={OwnerHomeScreen} />
       <OwnerStackNav.Screen name="OwnerRequests" component={OwnerRequestsScreen} />
-      <OwnerStackNav.Screen
-        name="OwnerRequestDetail"
-        component={OwnerRequestDetailScreen}
-      />
+      <OwnerStackNav.Screen name="OwnerRequestDetail" component={OwnerRequestDetailScreen} />
       <OwnerStackNav.Screen name="OwnerJobs" component={OwnerJobsScreen} />
     </OwnerStackNav.Navigator>
   );
 }
 
 export default function BottomTabs() {
-  const { mode } = useMode();           // "user" | "owner"
+  const { mode } = useMode();
   const isOwnerMode = mode === 'owner';
 
   return (
@@ -71,8 +95,9 @@ export default function BottomTabs() {
         tabBarShowLabel: true,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
-        tabBarActiveTintColor: '#E6A940',
-        tabBarInactiveTintColor: '#777',
+        tabBarActiveTintColor: C.active,
+        tabBarInactiveTintColor: C.inactive,
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tab.Screen
@@ -80,32 +105,44 @@ export default function BottomTabs() {
         component={isOwnerMode ? OwnerHomeStack : HomeStack}
         options={{
           title: isOwnerMode ? 'Owner' : 'Home',
-          tabBarIcon: ({ color }) => (
-            <Icon name={isOwnerMode ? 'local-shipping' : 'home'} size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <Icon 
+                name={isOwnerMode ? 'business-outline' : (focused ? 'home' : 'home-outline')} 
+                size={22} 
+                color={color} 
+              />
+            </View>
           ),
         }}
       />
 
       <Tab.Screen
         name="Tracking"
-        children={() => <TrackingScreen />}
+        component={TrackingScreen}
         options={{
-          tabBarIcon: ({ color }) => (
-            <Icon name="location-on" size={24} color={color} />
+          title: 'Track',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <Icon 
+                name={focused ? 'location' : 'location-outline'} 
+                size={22} 
+                color={color} 
+              />
+            </View>
           ),
         }}
       />
 
       <Tab.Screen
         name="Action"
-        children={() => <DummyScreen title="New Shipment" />}
+        component={() => <DummyScreen title="New Shipment" />}
         options={{
-          tabBarIcon: () => (
+          tabBarIcon: ({ focused }) => (
             <Icon2
-              name="send"
-              size={28}
-              color="#fff"
-              style={{ alignSelf: 'center', marginTop: -2 }}
+              name="plus"
+              size={24}
+              color={C.white}
             />
           ),
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
@@ -115,20 +152,34 @@ export default function BottomTabs() {
 
       <Tab.Screen
         name="Chats"
-        children={() => <ChatScreen />}
+        component={ChatScreen}
         options={{
-          tabBarIcon: ({ color }) => (
-            <Icon name="chat-bubble-outline" size={24} color={color} />
+          title: 'Chat',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <Icon 
+                name={focused ? 'chatbubble' : 'chatbubble-outline'} 
+                size={22} 
+                color={color} 
+              />
+            </View>
           ),
         }}
       />
 
       <Tab.Screen
         name="Profile"
-        children={() => <ProfileScreen />}
+        component={ProfileScreen}
         options={{
-          tabBarIcon: ({ color }) => (
-            <Icon name="person-outline" size={24} color={color} />
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <Icon 
+                name={focused ? 'person' : 'person-outline'} 
+                size={22} 
+                color={color} 
+              />
+            </View>
           ),
         }}
       />
@@ -136,48 +187,89 @@ export default function BottomTabs() {
   );
 }
 
-
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
-    height: 65,
-    borderTopWidth: 0.3,
-    borderTopColor: '#ddd',
-    backgroundColor: '#fff',
+    height: 70,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    backgroundColor: C.surface,
     elevation: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: -2 },
-    shadowRadius: 6,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: -3 },
+    shadowRadius: 10,
+    paddingBottom: 8,
+    paddingTop: 8,
   },
   tabLabel: {
-    fontSize: 12,
-    paddingBottom: 4,
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  iconContainerActive: {
+    // Optional: Add any active state styling for icon container
   },
 
+  // Floating Action Button Styles
   centerButtonWrapper: {
-    top: -25,
+    top: -28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#E6A940',
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 10,
   },
   centerButton: {
-    width: 65,
-    height: 65,
-    borderRadius: 32.5,
-    backgroundColor: '#E6A940',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: C.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: C.white,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
+  centerButtonFocused: {
+    backgroundColor: C.primaryStandard,
+    transform: [{ scale: 1.02 }],
+  },
+
+  // Dummy Screen Styles
   dummy: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: C.bg,
+  },
+  dummyIconBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  dummyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: C.textHead,
+    marginBottom: 8,
+  },
+  dummySubtitle: {
+    fontSize: 14,
+    color: C.textMuted,
   },
 });

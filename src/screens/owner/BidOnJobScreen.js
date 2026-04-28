@@ -2,9 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../theme/theme';
 import { jobApi, ownerApi } from '../../api/apiService';
+import Icon from 'react-native-vector-icons/Ionicons';
+
+// ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
+const C = {
+  primary: '#1847B1',        // Deep navy blue
+  primaryStandard: '#2260D9', // Standard primary blue
+  primaryLight: '#E8EFFD',    // Light blue tint
+  bg: '#F8FAFC',              // Cool Gray Background
+  surface: '#FFFFFF',         // White
+  surfaceAlt: '#F8FAFC',      // Light background
+  textHead: '#0F172A',        // Dark text
+  textBody: '#334155',        // Body text
+  textMuted: '#64748B',       // Muted text
+  textLink: '#2260D9',        // Standard blue for links
+  border: '#E2E8F0',          // Border color
+  divider: '#E2E8F0',         // Divider color
+  white: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 export default function BidOnJobScreen() {
     const route = useRoute();
@@ -58,59 +77,90 @@ export default function BidOnJobScreen() {
         }
     };
 
-    if (loading) return <ActivityIndicator style={styles.center} color={theme.colors.primary} />;
-    if (!job) return <View style={styles.center}><Text>Job no longer available</Text></View>;
+    if (loading) return (
+        <View style={styles.center}>
+            <ActivityIndicator size="large" color={C.primaryStandard} />
+        </View>
+    );
+
+    if (!job) return (
+        <View style={styles.center}>
+            <Icon name="alert-circle-outline" size={50} color={C.border} />
+            <Text style={styles.emptyText}>Job no longer available</Text>
+        </View>
+    );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.safe}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Icon name="close" size={24} color="#333" />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+                    <Icon name="close" size={24} color={C.textHead} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Place Bid</Text>
+                <Text style={styles.headerTitle}>Review & Bid</Text>
+                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scroll}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
                 <Text style={styles.jobTitle}>{job.title}</Text>
 
-                {/* Trip Summary */}
                 <View style={styles.card}>
-                    <View style={styles.row}>
-                        <Icon name="my-location" size={20} color="#4CAF50" />
+                    <Text style={styles.cardLabel}>Trip Route</Text>
+                    
+                    <View style={styles.routeRow}>
+                        <Icon name="location" size={18} color={C.success} />
                         <Text style={styles.address}>{job.pickup}</Text>
                     </View>
                     <View style={styles.connector} />
-                    <View style={styles.row}>
-                        <Icon name="location-on" size={20} color="#F44336" />
+                    <View style={styles.routeRow}>
+                        <Icon name="flag" size={18} color={C.error} />
                         <Text style={styles.address}>{job.dropoff}</Text>
                     </View>
 
                     <View style={styles.divider} />
-                    <View style={styles.rowSpace}>
-                        <Text style={styles.label}>Vehicle: <Text style={styles.val}>{job.vehicleType}</Text></Text>
-                        <Text style={styles.label}>Goods: <Text style={styles.val}>{job.goodsType}</Text></Text>
+                    
+                    <View style={styles.detailsRow}>
+                        <View style={styles.detailItem}>
+                            <Text style={styles.detailLabel}>Vehicle Type</Text>
+                            <Text style={styles.detailVal}>{job.vehicleType}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                            <Text style={styles.detailLabel}>Goods Type</Text>
+                            <Text style={styles.detailVal}>{job.goodsType}</Text>
+                        </View>
                     </View>
                 </View>
 
-                {/* Bid Input */}
-                <Text style={styles.sectionTitle}>Your Offer (Rs.)</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g. 5000"
-                    placeholderTextColor="#999"
-                    keyboardType="numeric"
-                    value={bidAmount}
-                    onChangeText={setBidAmount}
-                    autoFocus
-                />
-                <Text style={styles.hint}>Enter a competitive price to win this job.</Text>
+                <View style={styles.bidSection}>
+                    <Text style={styles.sectionTitle}>Your Offer Amount</Text>
+                    <View style={styles.inputWrapper}>
+                        <Text style={styles.currencyPrefix}>Rs.</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="0.00"
+                            placeholderTextColor={C.textMuted}
+                            keyboardType="numeric"
+                            value={bidAmount}
+                            onChangeText={setBidAmount}
+                            autoFocus
+                        />
+                    </View>
+                    <Text style={styles.hint}>Suggested bids are around Rs. 4,500 - 6,000</Text>
+                </View>
 
                 <TouchableOpacity
-                    style={styles.btn}
+                    style={[styles.btn, (!bidAmount || submitting) && styles.btnDisabled]}
                     onPress={handlePlaceBid}
-                    disabled={submitting}
+                    disabled={submitting || !bidAmount}
+                    activeOpacity={0.9}
                 >
-                    {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send Bid</Text>}
+                    {submitting ? (
+                        <ActivityIndicator color={C.white} />
+                    ) : (
+                        <>
+                            <Text style={styles.btnText}>Submit Bid</Text>
+                            <Icon name="arrow-forward" size={20} color={C.white} style={{ marginLeft: 8 }} />
+                        </>
+                    )}
                 </TouchableOpacity>
 
             </ScrollView>
@@ -119,27 +169,77 @@ export default function BidOnJobScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    headerTitle: { fontSize: 18, fontWeight: '700', marginLeft: 16, color: '#333' },
+    safe: { flex: 1, backgroundColor: C.bg },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+    header: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        paddingHorizontal: 16, 
+        paddingVertical: 12,
+        backgroundColor: C.surface,
+        borderBottomWidth: 1,
+        borderBottomColor: C.border,
+    },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: C.textHead },
     scroll: { padding: 20 },
 
-    jobTitle: { fontSize: 22, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 20 },
+    jobTitle: { fontSize: 24, fontWeight: '800', color: C.textHead, marginBottom: 24, letterSpacing: -0.5 },
 
-    card: { backgroundColor: '#F9F9F9', padding: 16, borderRadius: 12, marginBottom: 30 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    address: { fontSize: 15, color: '#333', flex: 1 },
-    connector: { height: 16, borderLeftWidth: 1, borderLeftColor: '#ddd', marginLeft: 9, marginVertical: 4 },
-    divider: { height: 1, backgroundColor: '#eee', marginVertical: 12 },
-    rowSpace: { flexDirection: 'row', justifyConent: 'space-between', gap: 20 },
-    label: { fontSize: 14, color: '#777' },
-    val: { fontWeight: '600', color: '#333' },
+    card: { 
+        backgroundColor: C.surface, 
+        padding: 20, 
+        borderRadius: 24, 
+        marginBottom: 30,
+        borderWidth: 1,
+        borderColor: C.border,
+    },
+    cardLabel: { fontSize: 12, color: C.textMuted, fontWeight: '700', textTransform: 'uppercase', marginBottom: 16, letterSpacing: 1 },
+    routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    address: { fontSize: 15, color: C.textHead, flex: 1, fontWeight: '500' },
+    connector: { height: 16, borderLeftWidth: 1.5, borderLeftColor: C.divider, marginLeft: 8.5, marginVertical: 4 },
+    divider: { height: 1, backgroundColor: C.divider, marginVertical: 20 },
+    detailsRow: { flexDirection: 'row', gap: 32 },
+    detailItem: { flex: 1 },
+    detailLabel: { fontSize: 12, color: C.textMuted, marginBottom: 4 },
+    detailVal: { fontSize: 15, fontWeight: '700', color: C.textHead },
 
-    sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#333' },
-    input: { fontSize: 24, fontWeight: 'bold', borderBottomWidth: 2, borderBottomColor: theme.colors.secondary, paddingVertical: 8, color: '#333' },
-    hint: { fontSize: 13, color: '#888', marginTop: 8, marginBottom: 40 },
+    bidSection: { marginBottom: 40 },
+    sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 16, color: C.textHead },
+    inputWrapper: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: C.surface,
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        borderWidth: 2,
+        borderColor: C.primaryStandard,
+    },
+    currencyPrefix: { fontSize: 20, fontWeight: '700', color: C.textMuted, marginRight: 8 },
+    input: { 
+        flex: 1, 
+        fontSize: 24, 
+        fontWeight: '800', 
+        paddingVertical: 16, 
+        color: C.textHead 
+    },
+    hint: { fontSize: 13, color: C.textMuted, marginTop: 12, fontWeight: '500' },
 
-    btn: { backgroundColor: theme.colors.secondary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-    btnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
+    btn: { 
+        backgroundColor: C.primary, 
+        paddingVertical: 18, 
+        borderRadius: 20, 
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        shadowColor: C.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 8 
+    },
+    btnDisabled: { backgroundColor: C.border, shadowOpacity: 0, elevation: 0 },
+    btnText: { color: C.white, fontSize: 18, fontWeight: '800' },
+    emptyText: { fontSize: 16, color: C.textMuted, fontWeight: '500' },
 });

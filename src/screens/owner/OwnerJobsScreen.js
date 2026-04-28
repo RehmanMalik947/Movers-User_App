@@ -1,11 +1,27 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../context/AuthContext';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { ownerApi } from '../../api/apiService';
-import { theme } from '../../theme/theme';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../../context/AuthContext';
+
+// ─── Design Tokens ───────────────────────────────────────────────────────────────
+const C = {
+  primary: '#1847B1',
+  primaryStandard: '#2260D9',
+  primaryLight: '#E8EFFD',
+  bg: '#F8FAFC',
+  surface: '#FFFFFF',
+  textHead: '#0F172A',
+  textBody: '#334155',
+  textMuted: '#64748B',
+  border: '#E2E8F0',
+  white: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 const mapJobToUI = (j) => ({
   ...j,
@@ -55,62 +71,107 @@ export default function OwnerJobsScreen() {
             navigation.navigate('AssignDriver', { jobId: item.id });
           }
         }}
+        activeOpacity={0.7}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>{item.title}</Text>
-          <View style={[styles.badge, { backgroundColor: isActionRequired ? theme.colors.error : theme.colors.success }]}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <View style={[styles.badge, { backgroundColor: isActionRequired ? C.error : C.success }]}>
             <Text style={styles.badgeText}>{item.status?.replace('_', ' ') || item.status}</Text>
           </View>
         </View>
 
-        <View style={styles.row}>
-          <Icon name="my-location" size={16} color="#666" />
-          <Text style={styles.loc}>{item.pickup}</Text>
-        </View>
-        <View style={styles.row}>
-          <Icon name="location-on" size={16} color="#666" />
-          <Text style={styles.loc}>{item.dropoff}</Text>
+        <View style={styles.locationRow}>
+          <View style={styles.dotContainer}>
+            <View style={[styles.dot, { backgroundColor: C.primaryStandard }]} />
+            <View style={styles.line} />
+            <View style={[styles.dot, { backgroundColor: C.error }]} />
+          </View>
+          <View style={styles.addressContainer}>
+            <Text style={styles.addressText} numberOfLines={1}>{item.pickup}</Text>
+            <View style={{ height: 16 }} />
+            <Text style={styles.addressText} numberOfLines={1}>{item.dropoff}</Text>
+          </View>
         </View>
 
         {isActionRequired && (
           <View style={styles.actionBanner}>
-            <Text style={styles.actionText}>Assign driver → Tap to assign</Text>
+            <Icon name="alert-circle" size={16} color={C.error} />
+            <Text style={styles.actionText}>Tap to assign a driver</Text>
           </View>
         )}
 
         {item.driverId && (
-          <Text style={styles.driverText}>Driver assigned (ID: {item.driverId})</Text>
+          <View style={styles.driverBadge}>
+            <Icon name="person" size={14} color={C.success} />
+            <Text style={styles.driverText}>Driver assigned</Text>
+          </View>
         )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.headerTitle}>My Active Jobs</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Active Jobs</Text>
+        <Text style={styles.headerSub}>Manage your ongoing logistics</Text>
+      </View>
       <FlatList
         data={jobs}
         renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadMyJobs} />}
-        ListEmptyComponent={<Text style={styles.empty}>No active jobs.</Text>}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadMyJobs} tintColor={C.primaryStandard} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Icon name="document-text-outline" size={64} color={C.border} />
+            <Text style={styles.empty}>No active jobs found.</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 20 },
-  card: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 16, elevation: 2 },
-  highlight: { borderColor: theme.colors.error, borderWidth: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  title: { fontSize: 16, fontWeight: '700', color: '#333' },
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  row: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  loc: { fontSize: 13, color: '#555' },
-  actionBanner: { marginTop: 12, backgroundColor: '#FFEBEE', padding: 8, borderRadius: 8, alignItems: 'center' },
-  actionText: { color: '#D32F2F', fontWeight: 'bold' },
-  driverText: { marginTop: 12, fontStyle: 'italic', color: '#4CAF50' },
-  empty: { textAlign: 'center', marginTop: 50, color: '#999' }
+  safe: { flex: 1, backgroundColor: C.bg },
+  header: { padding: 20, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: C.textHead, letterSpacing: -0.5 },
+  headerSub: { fontSize: 14, color: C.textMuted, marginTop: 4 },
+  list: { padding: 20 },
+  card: { backgroundColor: C.surface, padding: 16, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: C.border },
+  highlight: { borderColor: C.error, borderWidth: 1.5 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  cardTitle: { fontSize: 17, fontWeight: '700', color: C.textHead },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  badgeText: { color: C.white, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  locationRow: { flexDirection: 'row', marginBottom: 12 },
+  dotContainer: { alignItems: 'center', width: 20, marginRight: 12 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  line: { width: 1, flex: 1, backgroundColor: C.border, marginVertical: 2 },
+  addressContainer: { flex: 1 },
+  addressText: { fontSize: 14, color: C.textBody, fontWeight: '500' },
+  actionBanner: { 
+    marginTop: 12, 
+    backgroundColor: C.error + '10', 
+    padding: 10, 
+    borderRadius: 12, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8 
+  },
+  actionText: { color: C.error, fontWeight: '700', fontSize: 13 },
+  driverBadge: { 
+    marginTop: 12, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6,
+    backgroundColor: C.success + '10',
+    padding: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start'
+  },
+  driverText: { fontSize: 12, fontWeight: '600', color: C.success },
+  emptyContainer: { alignItems: 'center', marginTop: 100, gap: 16 },
+  empty: { fontSize: 16, color: C.textMuted, fontWeight: '500' }
 });

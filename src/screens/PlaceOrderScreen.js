@@ -6,6 +6,25 @@ import { useSelector } from 'react-redux';
 import { jobApi } from '../api/apiService';
 import { useAuth } from '../context/AuthContext';
 
+// ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
+const C = {
+  primary: '#1847B1',        // Deep navy blue
+  primaryStandard: '#2260D9', // Standard primary blue
+  primaryLight: '#E8EFFD',    // Light blue tint
+  bg: '#F8FAFC',              // Cool Gray Background
+  surface: '#FFFFFF',         // White
+  surfaceAlt: '#F8FAFC',      // Light background
+  textHead: '#0F172A',        // Dark text
+  textBody: '#334155',        // Body text
+  textMuted: '#64748B',       // Muted text
+  textLink: '#2260D9',        // Standard blue for links
+  border: '#E2E8F0',          // Border color
+  divider: '#E2E8F0',         // Divider color
+  white: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+};
+
 const PlaceOrderScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
@@ -21,13 +40,10 @@ const PlaceOrderScreen = () => {
 
   navigation.setOptions({
     headerShown: true,
-    title: 'Order Summary',
-    headerStyle: {
-      backgroundColor: '#DAAE58',
-    },
-    headerTitleStyle: {
-      color: '#000',
-    },
+    title: 'Review Order',
+    headerStyle: { backgroundColor: C.surface },
+    headerTintColor: C.textHead,
+    headerTitleStyle: { fontWeight: '800' },
   });
 
   const handlePlaceOrder = async () => {
@@ -62,124 +78,232 @@ const PlaceOrderScreen = () => {
     }
   };
 
+  const InfoRow = ({ label, value, onEdit, icon }) => (
+    <View style={styles.infoRow}>
+      <View style={styles.infoIconBg}>
+        <Icon name={icon} size={18} color={C.primaryStandard} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.value} numberOfLines={2}>{value || 'Not Set'}</Text>
+      </View>
+      {onEdit && (
+        <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+          <Icon name="pencil" size={16} color={C.textMuted} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Card Sections */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Point of Loading Info</Text>
-        <div className="flex flex-row items-center mb-3">
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Point of Loading Address</Text>
-            <Text style={styles.value}>{pickupLocation?.address || 'Not Set'}</Text>
-          </View>
-          <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('SetPickup')}>
-            <Icon name="pencil-outline" size={20} color="#DAAE58" />
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
-        </div>
-      </View>
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <Text style={styles.sectionTitle}>Shipment Details</Text>
+        
+        <View style={styles.card}>
+          <InfoRow 
+            label="Pickup Address" 
+            value={pickupLocation?.address} 
+            icon="location"
+            onEdit={() => navigation.navigate('SetPickup')}
+          />
+          <View style={styles.connectorLine} />
+          <InfoRow 
+            label="Delivery Address" 
+            value={dropoffLocation?.address} 
+            icon="flag"
+            onEdit={() => navigation.navigate('DropoffLocation')}
+          />
+        </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Point of Delivery Info</Text>
-        <div className="flex flex-row items-center mb-3">
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Point of Delivery Address</Text>
-            <Text style={styles.value}>{dropoffLocation?.address || 'Not Set'}</Text>
-          </View>
-          <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('DropoffLocation')}>
-            <Icon name="pencil-outline" size={20} color="#DAAE58" />
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
-        </div>
-      </View>
+        <View style={styles.card}>
+          <InfoRow 
+            label="Selected Vehicle" 
+            value={vehicle} 
+            icon="car-sport"
+            onEdit={() => navigation.navigate('vehicleSelection')}
+          />
+          <View style={styles.divider} />
+          <InfoRow 
+            label="Goods Category" 
+            value={goodsType} 
+            icon="cube"
+            onEdit={() => navigation.navigate('goodinfo')}
+          />
+        </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Vehicle & Goods Info</Text>
-        <div className="flex flex-row items-center mb-3">
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Vehicle</Text>
-            <Text style={styles.value}>{vehicle}</Text>
+        <View style={styles.fareCard}>
+          <View style={styles.fareHeader}>
+            <Icon name="calculator" size={20} color={C.primaryStandard} />
+            <Text style={styles.fareTitle}>Estimated Fare</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
-            <Icon name="pencil-outline" size={20} color="#DAAE58" />
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
-        </div>
-        <div className="flex flex-row items-center mb-3">
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Goods Type</Text>
-            <Text style={styles.value}>{goodsType}</Text>
+          <Text style={styles.fareAmount}>PKR 4,500 - 5,500</Text>
+          <View style={styles.fareNoteBox}>
+            <Icon name="information-circle" size={14} color={C.textMuted} />
+            <Text style={styles.note}>
+              Final rates will be provided by drivers via bidding.
+            </Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
-            <Icon name="pencil-outline" size={20} color="#DAAE58" />
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
-        </div>
-      </View>
+        </View>
+      </ScrollView>
 
-      {/* Fare Section */}
-      <View style={styles.fareCard}>
-        <Text style={styles.fareText}>Estimated Freight Fare</Text>
-        <Text style={styles.fareAmount}>PKR 4,500 - 5,500</Text>
-        <Text style={styles.note}>
-          Note: These are tentative rates. Please place the order to get the Final Rates.
-        </Text>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.confirmBtn, isSubmitting && { opacity: 0.7 }]}
+          onPress={handlePlaceOrder}
+          disabled={isSubmitting}
+          activeOpacity={0.8}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color={C.white} />
+          ) : (
+            <>
+              <Text style={styles.confirmBtnText}>Post Job Request</Text>
+              <Icon name="send" size={18} color={C.white} />
+            </>
+          )}
+        </TouchableOpacity>
       </View>
-
-      {/* Next Button */}
-      <TouchableOpacity
-        style={[styles.nextButton, isSubmitting && { opacity: 0.7 }]}
-        onPress={handlePlaceOrder}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.nextButtonText}>Confirm and Place Order</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingVertical: 8 },
+  container: { flex: 1, backgroundColor: C.bg },
+  scroll: { padding: 24 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: C.textHead,
+    marginBottom: 20,
+  },
   card: {
-    backgroundColor: '#FDF1D9',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 18,
-    padding: 16,
+    backgroundColor: C.surface,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#F0E8D6',
+    borderColor: C.divider,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  cardTitle: { fontWeight: '700', marginBottom: 12, color: '#2A2A2A' },
-  label: { fontWeight: '600', color: '#2A2A2A' },
-  value: { marginTop: 4, color: '#000' },
-  editButton: { flexDirection: 'row', alignItems: 'center' },
-  editText: { color: '#DAAE58', marginLeft: 4, fontWeight: '600' },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  infoIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  value: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: C.textHead,
+    marginTop: 2,
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: C.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  connectorLine: {
+    width: 2,
+    height: 20,
+    backgroundColor: C.divider,
+    marginLeft: 19,
+    marginVertical: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginVertical: 16,
+  },
   fareCard: {
-    backgroundColor: '#FDF1D9',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    borderRadius: 18,
-    padding: 16,
+    backgroundColor: C.primary,
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F0E8D6',
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  fareText: { fontWeight: '700', color: '#2A2A2A', marginBottom: 4 },
-  fareAmount: { fontWeight: '700', fontSize: 18, color: '#DAAE58', marginBottom: 4 },
-  note: { fontSize: 12, color: '#555', textAlign: 'center' },
-  nextButton: {
-    backgroundColor: '#DAAE58',
-    marginHorizontal: 16,
-    borderRadius: 18,
-    paddingVertical: 14,
+  fareHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 12,
   },
-  nextButtonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  fareTitle: {
+    fontWeight: '700',
+    color: C.white,
+    fontSize: 13,
+  },
+  fareAmount: {
+    fontWeight: '900',
+    fontSize: 24,
+    color: C.white,
+    marginBottom: 12,
+  },
+  fareNoteBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    opacity: 0.8,
+  },
+  note: {
+    fontSize: 11,
+    color: C.white,
+    textAlign: 'center',
+  },
+  footer: {
+    padding: 24,
+    backgroundColor: C.surface,
+    borderTopWidth: 1,
+    borderTopColor: C.divider,
+  },
+  confirmBtn: {
+    backgroundColor: C.primaryStandard,
+    flexDirection: 'row',
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    shadowColor: C.primaryStandard,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  confirmBtnText: {
+    color: C.white,
+    fontWeight: '800',
+    fontSize: 16,
+  },
 });
 
 export default PlaceOrderScreen;

@@ -1,21 +1,26 @@
 import { Platform } from 'react-native';
 
 /**
- * Backend API base URL for Android app.
- * Using the IPv4 address you provided for physical device testing.
+ * Backend API base URL.
+ * - Physical Android device: use your PC's LAN IP so the phone can reach the backend over Wi-Fi.
+ * - Android Emulator: use 10.0.2.2 (maps to host localhost).
+ * - iOS Simulator: use localhost.
+ *
+ * ⚠️  Set IS_PHYSICAL_DEVICE = true when running on a real phone.
+ *     Set IS_PHYSICAL_DEVICE = false when running on an emulator/simulator.
  */
-const DEVICE_HOST_IP = '192.168.10.4'; // Only use this for physical devices
+const IS_PHYSICAL_DEVICE = true;            // ← toggle this
+const DEVICE_HOST_IP    = '192.168.137.90';  // ← your PC's LAN IP
 
 const getBaseUrl = () => {
+  if (IS_PHYSICAL_DEVICE) {
+    return `http://${DEVICE_HOST_IP}:5001/api/`;
+  }
   if (__DEV__) {
-    // If physical device IP is set and we're not on emulator (common way to check is checking if it's android and not 10.0.2.2)
-    // However, 10.0.2.2 is the standard for Android emulators to access localhost
-    return Platform.OS === 'android' 
-      ? 'http://10.0.2.2:5001/api/' 
+    return Platform.OS === 'android'
+      ? 'http://10.0.2.2:5001/api/'
       : 'http://localhost:5001/api/';
   }
-  
-  // Production URL
   return 'http://localhost:5001/api/';
 };
 

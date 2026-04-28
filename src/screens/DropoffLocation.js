@@ -1,22 +1,32 @@
-import React, { useState, useLayoutEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Dimensions } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
-import { setDropoffLocation } from '../redux/slices/locationSlice';
 import { useDispatch } from 'react-redux';
+import { setDropoffLocation } from '../redux/slices/locationSlice';
+import Icon from 'react-native-vector-icons/Ionicons';
+import axios from 'axios';
 
-const { width, height } = Dimensions.get('window');
+const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY';
 
-const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY'; // Replace with your key; same as AndroidManifest geo API key if needed
+// ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
+const C = {
+  primary: '#1847B1',        // Deep navy blue
+  primaryStandard: '#2260D9', // Standard primary blue
+  primaryLight: '#E8EFFD',    // Light blue tint
+  bg: '#F8FAFC',              // Cool Gray Background
+  surface: '#FFFFFF',         // White
+  surfaceAlt: '#F8FAFC',      // Light background
+  textHead: '#0F172A',        // Dark text
+  textBody: '#334155',        // Body text
+  textMuted: '#64748B',       // Muted text
+  textLink: '#2260D9',        // Standard blue for links
+  border: '#E2E8F0',          // Border color
+  divider: '#E2E8F0',         // Divider color
+  white: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+};
 
 export default function DropoffLocationScreen() {
   const dispatch = useDispatch();
@@ -34,9 +44,10 @@ export default function DropoffLocationScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: true,
-      title: 'Dropoff Location',
-      headerStyle: { backgroundColor: '#DAAE58' },
-      headerTitleStyle: { color: '#000' },
+      title: 'Set Drop-off',
+      headerStyle: { backgroundColor: C.surface },
+      headerTintColor: C.textHead,
+      headerTitleStyle: { fontWeight: '800' },
     });
   }, [navigation]);
 
@@ -63,7 +74,6 @@ export default function DropoffLocationScreen() {
       );
       const address = res.data.results?.[0]?.formatted_address || '';
       setMarkerAddress(address);
-      setQuery(address);
     } catch (err) {
       console.log(err);
     }
@@ -102,36 +112,9 @@ export default function DropoffLocationScreen() {
     );
     navigation.goBack();
   };
+
   return (
-    <View style={{ flex: 1 }}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          value={query}
-          placeholder="Search drop-off location..."
-          onChangeText={searchLocation}
-          style={styles.input}
-        />
-      </View>
-
-      {/* Search Results */}
-      {results.length > 0 && (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.place_id}
-          style={styles.resultsList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.resultItem}
-              onPress={() => handleSelectLocation(item)}
-            >
-              <Text>{item.description}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-
-      {/* Map */}
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <MapView
         style={{ flex: 1 }}
         provider={PROVIDER_GOOGLE}
@@ -142,95 +125,237 @@ export default function DropoffLocationScreen() {
         }}
         customMapStyle={mapStyle}
       >
-        <Marker
-          coordinate={{ latitude: region.latitude, longitude: region.longitude }}
-        />
+        <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }}>
+          <View style={styles.customMarker}>
+            <View style={styles.markerCircle}>
+              <View style={styles.markerInner} />
+            </View>
+            <View style={styles.markerShadow} />
+          </View>
+        </Marker>
       </MapView>
 
-      {/* Floating Center Marker */}
-      <View style={styles.markerFixed}>
-        <Text style={{ fontSize: 35 }}>📍</Text>
+      <View style={styles.searchOverlay}>
+        <View style={styles.searchBox}>
+          <Icon name="search" size={18} color={C.textMuted} style={styles.searchIcon} />
+          <TextInput
+            value={query}
+            placeholder="Search drop-off location"
+            placeholderTextColor={C.textMuted}
+            onChangeText={searchLocation}
+            style={styles.input}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')}>
+              <Icon name="close-circle" size={18} color={C.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {results.length > 0 && (
+          <View style={styles.resultsWrapper}>
+            <FlatList
+              data={results}
+              keyExtractor={(item) => item.place_id}
+              style={styles.resultsList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.resultItem}
+                  onPress={() => handleSelectLocation(item)}
+                >
+                  <Icon name="location-sharp" size={16} color={C.primaryStandard} />
+                  <Text style={styles.resultText} numberOfLines={1}>{item.description}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
       </View>
 
-      {/* Footer Panel */}
       <View style={styles.footer}>
-        <Text style={styles.addressText}>
-          {markerAddress || query || 'Move map or search to select drop-off location'}
-        </Text>
-        <TouchableOpacity style={styles.btn} onPress={handleConfirm}>
-          <Text style={styles.btnText}>Confirm Drop-off Location</Text>
+        <View style={styles.footerHandle} />
+        <View style={styles.addressRow}>
+          <View style={styles.addressIconBg}>
+            <Icon name="flag" size={20} color={C.primaryStandard} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.addressLabel}>Drop-off Location</Text>
+            <Text style={styles.addressText} numberOfLines={2}>
+              {markerAddress || 'Locating...'}
+            </Text>
+          </View>
+        </View>
+        
+        <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.8}>
+          <Text style={styles.confirmBtnText}>Confirm Drop-off</Text>
+          <Icon name="chevron-forward" size={18} color={C.white} />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-// Optional map style (light/dark theme)
 const mapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+  { elementType: 'geometry', stylers: [{ color: '#f8fafc' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#e2e8f0' }] },
 ];
 
 const styles = StyleSheet.create({
-  searchContainer: {
+  searchOverlay: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
+    top: 20,
+    left: 20,
+    right: 20,
     zIndex: 200,
   },
-  input: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 10,
-    fontSize: 16,
-    elevation: 4,
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: C.surface,
+    paddingHorizontal: 16,
+    height: 54,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: C.divider,
   },
-  resultsList: {
-    position: 'absolute',
-    top: 60,
-    width: '100%',
-    backgroundColor: '#fff',
-    maxHeight: 200,
-    zIndex: 250,
-    borderRadius: 8,
-    elevation: 5,
+  searchIcon: { marginRight: 12 },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: C.textHead,
+    fontWeight: '600',
+  },
+  resultsWrapper: {
+    marginTop: 8,
+    backgroundColor: C.surface,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: C.divider,
+    maxHeight: 250,
+    overflow: 'hidden',
   },
   resultItem: {
-    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
     borderBottomWidth: 1,
-    borderColor: '#eee',
+    borderColor: C.divider,
+    gap: 12,
   },
-  markerFixed: {
-    left: width / 2 - 17,
-    top: height / 2 - 50,
-    position: 'absolute',
+  resultText: {
+    fontSize: 14,
+    color: C.textBody,
+    flex: 1,
+  },
+  customMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: C.primary,
+    borderWidth: 3,
+    borderColor: C.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.white,
+  },
+  markerShadow: {
+    width: 10,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 5,
+    marginTop: 2,
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: '#FFF4D9',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    padding: 15,
-    elevation: 8,
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    paddingTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 15,
+    borderWidth: 1,
+    borderColor: C.divider,
+  },
+  footerHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: C.divider,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  addressRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 16,
+    marginBottom: 24,
+  },
+  addressIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   addressText: {
-    fontSize: 16,
-    marginBottom: 10,
+    fontSize: 15,
+    fontWeight: '700',
+    color: C.textHead,
+    marginTop: 2,
   },
-  btn: {
-    backgroundColor: '#DAAE58',
-    paddingVertical: 14,
-    paddingHorizontal: 25,
-    borderRadius: 12,
-    width: '90%',
+  confirmBtn: {
+    backgroundColor: C.primary,
+    flexDirection: 'row',
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  btnText: { color: '#fff', fontSize: 16 },
+  confirmBtnText: {
+    color: C.white,
+    fontWeight: '800',
+    fontSize: 16,
+  },
 });

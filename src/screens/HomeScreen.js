@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,49 +7,128 @@ import {
   Image,
   StyleSheet,
   ScrollView,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/Ionicons';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+
+const { width } = Dimensions.get('window');
+
+// ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
+const C = {
+  primary: '#1847B1',        // Deep navy blue
+  primaryStandard: '#2260D9', // Standard primary blue
+  primaryLight: '#E8EFFD',    // Light blue tint
+  bg: '#F8FAFC',              // Cool Gray Background
+  surface: '#FFFFFF',         // White
+  surfaceAlt: '#F8FAFC',      // Light background
+  textHead: '#0F172A',        // Dark text
+  textBody: '#334155',        // Body text
+  textMuted: '#64748B',       // Muted text
+  textLink: '#2260D9',        // Standard blue for links
+  border: '#E2E8F0',          // Border color
+  divider: '#E2E8F0',         // Divider color
+  white: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 const TABS = ['Departments', 'National', 'International'];
 
 export default function HomeScreen() {
-
   const activeIndex = 1; // "National" active
   const navigation = useNavigation();
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 70,
+        friction: 10,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const services = [
+    { name: 'Small Truck', image: require('../assets/smallTruck.png'), size: 'Small' },
+    { name: 'Medium Truck', image: require('../assets/mediumTruck.png'), size: 'Medium' },
+    { name: 'Heavy Truck', image: require('../assets/heavyTruck.png'), size: 'Heavy' },
+    { name: 'Pickup Truck', image: require('../assets/pickup_truck.png'), size: 'Pickup' },
+  ];
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={styles.safe}>
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 16 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
+        {/* Header Section */}
+        <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.headerLeft}>
             <Text style={styles.welcome}>
-              Welcome, Imran <Text style={{ fontSize: 18 }}>👋</Text>
+              Welcome back, <Text style={styles.userName}>Imran</Text> 👋
             </Text>
             <Text style={styles.subtitle}>Driving efficiency in every shipment</Text>
-
+            
             <View style={styles.miniRoute}>
-              <Icon name="my-location" size={14} color="#E6A940" />
-              <View style={styles.miniRouteDots} />
-              <Icon name="location-on" size={16} color="#E6A940" />
+              <View style={styles.miniRouteBadge}>
+                <Icon name="location-outline" size={12} color={C.primaryStandard} />
+              </View>
+              <View style={styles.miniRouteLine} />
+              <View style={styles.miniRouteBadge}>
+                <Icon name="flag-outline" size={12} color={C.primaryStandard} />
+              </View>
             </View>
           </View>
 
           <View style={styles.profileWrapper}>
             <Image
-              source={{ uri: 'https://unsplash.com/photos/young-woman-with-dark-hair-wearing-a-blue-tank-top-PR-tMohdtFw?q=80&w=200&auto=format&fit=crop' }}
+              source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop' }}
               style={styles.profileImg}
             />
+            <View style={styles.onlineBadge} />
           </View>
-        </View>
+        </Animated.View>
+
+        {/* Stats Cards */}
+        <Animated.View style={[styles.statsContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.statCard}>
+            <View style={styles.statIconBg}>
+              <Icon name="cube-outline" size={20} color={C.primaryStandard} />
+            </View>
+            <Text style={styles.statValue}>24</Text>
+            <Text style={styles.statLabel}>Active Shipments</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={styles.statIconBg}>
+              <Icon name="checkmark-circle-outline" size={20} color={C.success} />
+            </View>
+            <Text style={styles.statValue}>156</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={styles.statIconBg}>
+              <Icon name="star-outline" size={20} color={C.warning} />
+            </View>
+            <Text style={styles.statValue}>4.8</Text>
+            <Text style={styles.statLabel}>Rating</Text>
+          </View>
+        </Animated.View>
 
         {/* Tabs */}
-        <View style={styles.tabsWrap}>
+        <Animated.View style={[styles.tabsWrap, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.tabs}>
             {TABS.map((tab, idx) => {
               const active = idx === activeIndex;
@@ -57,7 +136,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={tab}
                   style={[styles.tab, active && styles.activeTab]}
-                  activeOpacity={0.85}
+                  activeOpacity={0.7}
                 >
                   <Text style={[styles.tabText, active && styles.activeTabText]}>
                     {tab}
@@ -66,129 +145,408 @@ export default function HomeScreen() {
               );
             })}
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={styles.routeBox}>
+        {/* Route Box */}
+        <Animated.View style={[styles.routeBox, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.routeHeader}>
+            <Icon name="swap-vertical-outline" size={18} color={C.primaryStandard} />
+            <Text style={styles.routeHeaderText}>Current Route</Text>
+          </View>
+          
           <View style={styles.routeRow}>
-            <View style={[styles.dot, { backgroundColor: '#E6A940' }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.routeLabel}>Pick it up from</Text>
+            <View style={styles.routeDotStart} />
+            <View style={styles.routeContent}>
+              <Text style={styles.routeLabel}>Pickup Location</Text>
               <Text style={styles.routeValue}>Mall 1, Gulberg, Lahore</Text>
             </View>
-            <Icon name="chevron-right" size={24} color="#9C9C9C" />
+            <MaterialIcon name="chevron-right" size={22} color={C.textMuted} />
           </View>
 
           <View style={styles.routeDivider} />
 
           <View style={styles.routeRow}>
-            <View style={[styles.dot, { backgroundColor: '#9C9C9C' }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.routeLabel}>Deliver to</Text>
+            <View style={styles.routeDotEnd} />
+            <View style={styles.routeContent}>
+              <Text style={styles.routeLabel}>Delivery Location</Text>
               <Text style={styles.routeValue}>Johar Town, Lahore</Text>
             </View>
-            <Icon name="chevron-right" size={24} color="#9C9C9C" />
+            <MaterialIcon name="chevron-right" size={22} color={C.textMuted} />
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Services */}
-        <Text style={styles.servicesTitle}>Type of services</Text>
-
-        <View style={styles.grid}>
-          {[
-            { name: 'Small truck', image: require('../assets/smallTruck.png') },
-            { name: 'Medium truck', image: require('../assets/mediumTruck.png') },
-            { name: 'Heavy truck', image: require('../assets/heavyTruck.png') },
-            { name: 'Pickup truck', image: require('../assets/pickup_truck.png') },
-            
-          ].map((item) => (
-            <TouchableOpacity
-              key={item.name}
-              onPress={() => navigation.navigate('pickup')}
-              style={styles.card}
-              activeOpacity={0.9}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitleTop}>{item.name.split(' ')[0]}</Text>
-                <Text style={styles.cardTitleBottom}>{item.name.split(' ')[1] || ''}</Text>
-                <Image
-                  source={item.image}
-                  style={styles.truckImg}
-                  resizeMode="contain"
-                />
-              </View>
-              <View style={styles.arrowWrap}>
-                <Icon name="chevron-right" size={22} color="#222" />
-              </View>
+        {/* Services Section */}
+        <Animated.View style={[styles.servicesSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.servicesTitle}>Available Trucks</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
+
+          <View style={styles.grid}>
+            {services.map((item, index) => (
+              <TouchableOpacity
+                key={item.name}
+                onPress={() => navigation.navigate('pickup')}
+                style={styles.card}
+                activeOpacity={0.9}
+              >
+                <View style={styles.cardContent}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>{item.name}</Text>
+                    <View style={styles.cardBadge}>
+                      <Text style={styles.cardBadgeText}>{item.size}</Text>
+                    </View>
+                  </View>
+                  <Image
+                    source={item.image}
+                    style={styles.truckImg}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.arrowWrap}>
+                  <Icon name="arrow-forward" size={18} color={C.white} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* Bottom Padding */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  safe: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
 
-  /* header */
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+
+  // Header Styles
   header: {
-    marginTop: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 20,
+    marginTop: 12,
     marginBottom: 20,
-    backgroundColor: '#FFF4D9', // original color
+    padding: 16,
+    backgroundColor: C.surface,
+    borderRadius: 24,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 4,
-  },
-  welcome: { fontSize: 20, fontWeight: '700', color: '#2B2B2B' },
-  subtitle: { marginTop: 2, fontSize: 14, color: '#7C7C7C' },
-  miniRoute: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  miniRouteDots: { flex: 1, height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: '#E6A940', opacity: 0.6 },
-  profileWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginLeft: 12,
     borderWidth: 1,
-    borderColor: '#F1E4C9',
+    borderColor: C.border,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  welcome: {
+    fontSize: 16,
+    color: C.textMuted,
+    marginBottom: 4,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: C.textHead,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: C.textMuted,
+    marginBottom: 10,
+  },
+  miniRoute: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  miniRouteBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniRouteLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: C.border,
+  },
+  profileWrapper: {
+    position: 'relative',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: C.white,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
+    elevation: 4,
+  },
+  profileImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: C.success,
+    borderWidth: 2,
+    borderColor: C.white,
+  },
+
+  // Stats Cards
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: C.textHead,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: C.textMuted,
+  },
+
+  // Tabs
+  tabsWrap: {
+    marginBottom: 20,
+  },
+  tabs: {
+    backgroundColor: C.surface,
+    borderRadius: 30,
+    padding: 4,
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  tab: {
+    flex: 1,
+    height: 40,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeTab: {
+    backgroundColor: C.primary,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 3,
   },
-  profileImg: { width: '100%', height: '100%' },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.textMuted,
+  },
+  activeTabText: {
+    color: C.white,
+  },
 
-  /* tabs */
-  tabsWrap: { marginBottom: 18 },
-  tabs: { backgroundColor: '#FDF1D9', borderRadius: 22, padding: 5, flexDirection: 'row' },
-  tab: { flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  activeTab: { backgroundColor: '#DAAE58', shadowColor: '#000', shadowOpacity: 0.08, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 2 },
-  tabText: { fontSize: 13, color: '#6F6F6F', fontWeight: '600' },
-  activeTabText: { color: '#fff' },
+  // Route Box
+  routeBox: {
+    backgroundColor: C.surface,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  routeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.divider,
+  },
+  routeHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.textHead,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  routeDotStart: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: C.primaryStandard,
+  },
+  routeDotEnd: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: C.textMuted,
+  },
+  routeContent: {
+    flex: 1,
+  },
+  routeLabel: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginBottom: 2,
+  },
+  routeValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.textHead,
+  },
+  routeDivider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginVertical: 12,
+    marginLeft: 22,
+  },
 
-  /* route box */
-  routeBox: { backgroundColor: '#FDF1D9', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: '#F0E8D6', marginBottom: 18, shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 2 },
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  routeLabel: { fontSize: 12, color: '#8F8F8F', marginBottom: 2 },
-  routeValue: { fontSize: 14, fontWeight: '600', color: '#2A2A2A' },
-  routeDivider: { height: 1, backgroundColor: '#EFE7D7', marginVertical: 10 },
+  // Services Section
+  servicesSection: {
+    marginTop: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  servicesTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: C.textHead,
+  },
+  seeAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.primaryStandard,
+  },
 
-  /* section title */
-  servicesTitle: { fontSize: 16, fontWeight: '700', color: '#2B2B2B', marginBottom: 12 },
+  // Grid Cards
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  card: {
+    width: (width - 52) / 2, // Account for padding and gap
+    backgroundColor: C.surface,
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: C.textHead,
+  },
+  cardBadge: {
+    backgroundColor: C.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  cardBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: C.primaryStandard,
+  },
+  truckImg: {
+    width: '100%',
+    height: 60,
+  },
+  arrowWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: C.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
 
-  /* grid & card */
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { width: '48%', height: 140, backgroundColor: '#F2F2F2', borderRadius: 18, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#F0E8D6', shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 2, flexDirection: 'row' },
-  cardTitleTop: { fontSize: 14, fontWeight: '700', color: '#2A2A2A', marginTop: 2 },
-  cardTitleBottom: { fontSize: 14, fontWeight: '700', color: '#2A2A2A', marginBottom: 6, lineHeight: 18 },
-  truckImg: { width: 90, height: 60, position: 'absolute', bottom: 8, left: 0 },
-  arrowWrap: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#DAAE58', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  bottomPadding: {
+    height: 20,
+  },
 });

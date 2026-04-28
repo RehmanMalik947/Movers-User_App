@@ -2,11 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../theme/theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { mockApi } from '../../api/mockService';
 import { chatApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
+
+// ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
+const C = {
+  primary: '#1847B1',        // Deep navy blue
+  primaryStandard: '#2260D9', // Standard primary blue
+  primaryLight: '#E8EFFD',    // Light blue tint
+  bg: '#F8FAFC',              // Cool Gray Background
+  surface: '#FFFFFF',         // White
+  surfaceAlt: '#F8FAFC',      // Light background
+  textHead: '#0F172A',        // Dark text
+  textBody: '#334155',        // Body text
+  textMuted: '#64748B',       // Muted text
+  textLink: '#2260D9',        // Standard blue for links
+  border: '#E2E8F0',          // Border color
+  divider: '#E2E8F0',         // Divider color
+  white: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 export default function ActiveJobScreen() {
     const route = useRoute();
@@ -23,25 +42,7 @@ export default function ActiveJobScreen() {
     }, []);
 
     const loadJob = async () => {
-        // Need to refetch job details. 
-        // Assuming we can get 'getUserJobs' or 'getDriverJobs' and filter.
         try {
-            // HACK: mockApi.getDriverJobs + find. In real app, getJobById.
-            // Since mock service is memory based, getting the list works.
-            const data = await mockApi.getDriverJobs('d1'); // Assuming 'd1' context, actually should use context user.id.
-            // BUT wait, I don't have user.id here easily unless I use context repeatedly or passed in.
-            // I'll grab context or just assume the job is fetched.
-            // Wait, I can't use 'd1' hardcoded. I should fetch by ID if possible or pass data.
-            // I'll just rely on `mockApi` having a helper or I'll implement `getJob` properly.
-            // But for now, let's assume `getDriverJobs` is what I used in Dashboard.
-
-            // Let's use a simpler hack: I will access the GLOBAL mock data if I could.
-            // Instead, I'll use the hack I did in Owner logic: filter from available? No.
-            // I'll update mockApi to expose a `getJobById` quickly or just loop.
-            // I'll just iterate all jobs in memory via `getUserJobs` of "u1" maybe? No.
-
-            // Okay, I will implement `getJob` in mockService really quickly in next step.
-            // For now, I will write this assuming `mockApi.getJob(jobId)` exists.
             const jobData = await mockApi.getJob(jobId);
             setJob(jobData);
         } catch (error) {
@@ -56,7 +57,7 @@ export default function ActiveJobScreen() {
         try {
             await mockApi.updateJobStatus(jobId, newStatus);
             setJob(prev => ({ ...prev, status: newStatus }));
-            Alert.alert("Updated", `Job marked as ${newStatus}`);
+            Alert.alert("Success", `Status updated to ${newStatus}`);
         } catch (error) {
             Alert.alert("Error", error.message);
         } finally {
@@ -65,7 +66,7 @@ export default function ActiveJobScreen() {
     };
 
     const handleChatWithCustomer = async () => {
-        if (!job.customer_id && !job.userId) { // fallback check
+        if (!job.customer_id && !job.userId) {
             Alert.alert("Notice", "Customer information not found.");
             return;
         }
@@ -90,18 +91,23 @@ export default function ActiveJobScreen() {
         }
     };
 
-    if (loading) return <ActivityIndicator style={styles.center} />;
-    if (!job) return <View style={styles.center}><Text>Job not found</Text></View>;
+    if (loading) return (
+        <View style={styles.center}>
+            <ActivityIndicator size="large" color={C.primaryStandard} />
+        </View>
+    );
 
-    // Flow: ASSIGNED -> IN_PROGRESS -> PICKED_UP -> DROPPED_OFF -> COMPLETED
-    // Simplified: ASSIGNED -> STARTED -> COMPLETED
-    // Let's do: ASSIGNED -> "Start Trip" -> IN_PROGRESS -> "Arrived at Pickup" -> "Picked Up" -> "Arrived at Dropoff" -> "Dropped Off" -> COMPLETED.
-    // For FYP simplicity: ASSIGNED -> IN_PROGRESS -> COMPLETED
+    if (!job) return (
+        <View style={styles.center}>
+            <Icon name="alert-circle-outline" size={50} color={C.border} />
+            <Text style={styles.emptyText}>Job not found</Text>
+        </View>
+    );
 
     const getNextAction = () => {
         switch (job.status) {
-            case 'ASSIGNED': return { label: 'Start Job', next: 'IN_PROGRESS', icon: 'directions-car' };
-            case 'IN_PROGRESS': return { label: 'Complete Job', next: 'COMPLETED', icon: 'check-circle' };
+            case 'ASSIGNED': return { label: 'Start Job', next: 'IN_PROGRESS', icon: 'play' };
+            case 'IN_PROGRESS': return { label: 'Complete Job', next: 'COMPLETED', icon: 'checkmark-circle' };
             default: return null;
         }
     };
@@ -109,109 +115,222 @@ export default function ActiveJobScreen() {
     const action = getNextAction();
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.safe}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Icon name="arrow-back" size={24} color="#333" />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+                    <Icon name="arrow-back" size={24} color={C.textHead} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Current Job</Text>
+                <Text style={styles.headerTitle}>Active Shipment</Text>
+                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scroll}>
-                <Text style={styles.title}>{job.title}</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+                <View style={styles.statusSection}>
+                    <View style={styles.statusBadge}>
+                        <Text style={styles.statusText}>{job.status}</Text>
+                    </View>
+                    <Text style={styles.title}>{job.title}</Text>
+                </View>
 
                 {/* Map Placeholder */}
-                <View style={styles.mapPlaceholder}>
-                    <Icon name="map" size={48} color="#ccc" />
-                    <Text style={{ color: '#999' }}>Map View</Text>
+                <View style={styles.mapContainer}>
+                    <View style={styles.mapPlaceholder}>
+                        <Icon name="map-outline" size={40} color={C.textMuted} />
+                        <Text style={styles.mapText}>Live Tracking View</Text>
+                    </View>
+                    <View style={styles.mapOverlay}>
+                        <TouchableOpacity style={styles.mapActionBtn}>
+                            <Icon name="navigate-outline" size={20} color={C.primaryStandard} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <View style={styles.card}>
-                    <View style={styles.row}>
-                        <Icon name="my-location" size={20} color="#4CAF50" />
-                        <View>
+                    <Text style={styles.cardTitle}>Route Details</Text>
+                    
+                    <View style={styles.routeRow}>
+                        <View style={styles.iconCircle}>
+                            <Icon name="location" size={18} color={C.success} />
+                        </View>
+                        <View style={styles.routeInfo}>
                             <Text style={styles.label}>Pickup</Text>
                             <Text style={styles.val}>{job.pickup}</Text>
                         </View>
                     </View>
-                    <View style={styles.divider} />
-                    <View style={styles.row}>
-                        <Icon name="location-on" size={20} color="#F44336" />
-                        <View>
+                    
+                    <View style={styles.routeLine} />
+
+                    <View style={styles.routeRow}>
+                        <View style={styles.iconCircle}>
+                            <Icon name="flag" size={18} color={C.error} />
+                        </View>
+                        <View style={styles.routeInfo}>
                             <Text style={styles.label}>Dropoff</Text>
                             <Text style={styles.val}>{job.dropoff}</Text>
                         </View>
                     </View>
                 </View>
 
-                {/* Chat Button */}
-                <TouchableOpacity 
-                    style={styles.chatButton} 
-                    onPress={handleChatWithCustomer}
-                    disabled={updating}
-                >
-                    <Icon name="chat" size={24} color="#fff" />
-                    <Text style={styles.chatButtonText}>Chat with Customer</Text>
-                </TouchableOpacity>
-
-                {action ? (
-                    <TouchableOpacity
-                        style={styles.bigBtn}
-                        onPress={() => updateStatus(action.next)}
+                <View style={styles.actionsContainer}>
+                    <TouchableOpacity 
+                        style={styles.chatButton} 
+                        onPress={handleChatWithCustomer}
                         disabled={updating}
+                        activeOpacity={0.8}
                     >
-                        {updating ? <ActivityIndicator color="#fff" /> : (
-                            <>
-                                <Icon name={action.icon} size={28} color="#fff" style={{ marginRight: 10 }} />
-                                <Text style={styles.btnText}>{action.label}</Text>
-                            </>
-                        )}
+                        <Icon name="chatbubble-ellipses-outline" size={22} color={C.primaryStandard} />
+                        <Text style={styles.chatButtonText}>Chat with Customer</Text>
                     </TouchableOpacity>
-                ) : (
-                    <View style={styles.completedBox}>
-                        <Text style={styles.completedText}>Job Completed</Text>
-                    </View>
-                )}
 
+                    {action ? (
+                        <TouchableOpacity
+                            style={styles.bigBtn}
+                            onPress={() => updateStatus(action.next)}
+                            disabled={updating}
+                            activeOpacity={0.9}
+                        >
+                            {updating ? <ActivityIndicator color={C.white} /> : (
+                                <>
+                                    <Icon name={action.icon} size={24} color={C.white} style={{ marginRight: 10 }} />
+                                    <Text style={styles.btnText}>{action.label}</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={styles.completedBox}>
+                            <Icon name="checkmark-done-circle" size={30} color={C.white} />
+                            <Text style={styles.completedText}>Job Completed</Text>
+                        </View>
+                    )}
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    headerTitle: { fontSize: 18, fontWeight: '700', marginLeft: 16, color: '#333' },
+    safe: { flex: 1, backgroundColor: C.bg },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+    header: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        paddingHorizontal: 16, 
+        paddingVertical: 12,
+        backgroundColor: C.surface,
+        borderBottomWidth: 1,
+        borderBottomColor: C.border,
+    },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: C.textHead },
     scroll: { padding: 20 },
-    title: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 20 },
+    
+    statusSection: { marginBottom: 24, alignItems: 'center' },
+    statusBadge: { 
+        backgroundColor: C.primaryLight, 
+        paddingHorizontal: 12, 
+        paddingVertical: 6, 
+        borderRadius: 20,
+        marginBottom: 10,
+    },
+    statusText: { color: C.primaryStandard, fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
+    title: { fontSize: 24, fontWeight: '800', color: C.textHead, textAlign: 'center', letterSpacing: -0.5 },
 
-    mapPlaceholder: { height: 200, backgroundColor: '#eee', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    mapContainer: { marginBottom: 24, position: 'relative' },
+    mapPlaceholder: { 
+        height: 180, 
+        backgroundColor: C.surface, 
+        borderRadius: 24, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: C.border,
+    },
+    mapText: { color: C.textMuted, marginTop: 8, fontSize: 14, fontWeight: '500' },
+    mapOverlay: { position: 'absolute', bottom: 12, right: 12 },
+    mapActionBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: C.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+    },
 
-    card: { backgroundColor: '#F9F9F9', padding: 16, borderRadius: 12, marginBottom: 30 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    divider: { height: 1, backgroundColor: '#ddd', marginVertical: 12, marginLeft: 32 },
-    label: { fontSize: 12, color: '#888' },
-    val: { fontSize: 15, color: '#333', fontWeight: '500' },
+    card: { 
+        backgroundColor: C.surface, 
+        padding: 20, 
+        borderRadius: 24, 
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: C.border,
+    },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: C.textHead, marginBottom: 20 },
+    routeRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    iconCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: C.bg,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    routeInfo: { flex: 1 },
+    routeLine: { 
+        height: 20, 
+        width: 1, 
+        backgroundColor: C.divider, 
+        marginLeft: 18, 
+        marginVertical: 4 
+    },
+    label: { fontSize: 12, color: C.textMuted, marginBottom: 2 },
+    val: { fontSize: 15, color: C.textHead, fontWeight: '600' },
 
-    bigBtn: { backgroundColor: theme.colors.primary, paddingVertical: 20, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', elevation: 4 },
-    btnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-
-    completedBox: { backgroundColor: theme.colors.success, padding: 20, borderRadius: 12, alignItems: 'center' },
-    completedText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
+    actionsContainer: { gap: 16, marginBottom: 40 },
     chatButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#4CAF50',
+        backgroundColor: C.surface,
         padding: 16,
-        borderRadius: 12,
-        marginBottom: 20,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: C.primaryStandard,
+        gap: 10,
     },
     chatButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 18,
-        marginLeft: 10,
-    }
+        color: C.primaryStandard,
+        fontWeight: '700',
+        fontSize: 16,
+    },
+    bigBtn: { 
+        backgroundColor: C.primary, 
+        paddingVertical: 18, 
+        borderRadius: 20, 
+        alignItems: 'center', 
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        shadowColor: C.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 8 
+    },
+    btnText: { color: C.white, fontSize: 18, fontWeight: '800' },
+
+    completedBox: { 
+        backgroundColor: C.success, 
+        padding: 20, 
+        borderRadius: 20, 
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 12,
+    },
+    completedText: { color: C.white, fontWeight: '800', fontSize: 18 },
+    emptyText: { color: C.textMuted, fontSize: 16, fontWeight: '500' },
 });
