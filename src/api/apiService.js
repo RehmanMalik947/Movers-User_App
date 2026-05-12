@@ -68,9 +68,21 @@ export const jobApi = {
 
 export const ownerApi = {
     getTrucks: () => apiService.get('owner/trucks'),
-    addTruck: (data) => apiService.post('owner/trucks', data),
+    addTruck: (data) => apiService.post('owner/trucks', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    updateTruck: (id, data) => apiService.put(`owner/trucks/${id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    deleteTruck: (id) => apiService.delete(`owner/trucks/${id}`),
     getDrivers: () => apiService.get('owner/drivers'),
-    addDriver: (data) => apiService.post('owner/drivers', data),
+    addDriver: (data) => apiService.post('owner/drivers', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    updateDriver: (id, data) => apiService.put(`owner/drivers/${id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    deleteDriver: (id) => apiService.delete(`owner/drivers/${id}`),
     getCategories: () => apiService.get('owner/categories'),
     getAvailableJobs: () => apiService.get('owner/jobs'),
     getMyJobs: () => apiService.get('owner/my-jobs'),
@@ -87,6 +99,18 @@ export const chatApi = {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
     getAvailablePartners: (myId, role) => apiService.get(`chat/available-partners/${myId}/${role}`),
+};
+
+export const reviewApi = {
+    create: (data) => apiService.post('reviews', data),
+    getJobReviews: (jobId) => apiService.get(`reviews/job/${jobId}`),
+    getUserReviews: (userId, role) => apiService.get(`reviews/user/${userId}/${role}`),
+    getDriverReviews: (driverId) => apiService.get(`reviews/driver/${driverId}`),
+};
+
+export const driverApi = {
+    getProfile: () => apiService.get('drivers/profile'),
+    toggleOnline: (is_online) => apiService.patch('drivers/toggle-online', { is_online }),
 };
 
 export default apiService;

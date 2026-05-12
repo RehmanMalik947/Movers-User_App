@@ -1,8 +1,8 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text, Platform, PanResponder, Animated, Dimensions } from 'react-native';
 import { createBottomTabNavigator, BottomTabBar } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Screens
@@ -17,19 +17,20 @@ import PlaceOrderScreen from '../screens/PlaceOrderScreen';
 import AIChatbotScreen from '../screens/user/AIChatbotScreen';
 import MessagingScreen from '../screens/MessagingScreen';
 import ChatStack from './ChatStack';
+import RateJobScreen from '../screens/RateJobScreen';
 
 // ─── Design Tokens - Matching Premium Aesthetic ──────────────────────────────────
 const C = {
-  primary: '#1847B1',        // Deep navy blue
-  primaryStandard: '#2260D9', // Standard primary blue
-  primaryLight: '#E8EFFD',    // Light blue tint
-  bg: '#F8FAFC',              // Cool Gray Background
-  surface: '#FFFFFF',         // White
-  textHead: '#0F172A',        // Dark text
-  textBody: '#334155',        // Body text
-  textMuted: '#64748B',       // Muted text
-  border: '#E2E8F0',          // Border color
-  divider: '#E2E8F0',         // Divider color
+  primary: '#1847B1',
+  primaryStandard: '#2260D9',
+  primaryLight: '#E8EFFD',
+  bg: '#F8FAFC',
+  surface: '#FFFFFF',
+  textHead: '#0F172A',
+  textBody: '#334155',
+  textMuted: '#64748B',
+  border: '#E2E8F0',
+  divider: '#E2E8F0',
   white: '#FFFFFF',
 };
 
@@ -58,7 +59,6 @@ const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 70;
 const EDGE_PADDING = 12;
 
 function DraggableAIFab({ onPress }) {
-    // Start bottom-right, just above the tab bar
     const position = useRef(new Animated.ValueXY({
         x: SCREEN_WIDTH - FAB_SIZE - 20,
         y: SCREEN_HEIGHT - TAB_BAR_HEIGHT - FAB_SIZE - 20,
@@ -95,22 +95,18 @@ function DraggableAIFab({ onPress }) {
             onPanResponderRelease: (_, gestureState) => {
                 position.flattenOffset();
 
-                // Calculate new position
                 let newX = lastPosition.current.x + gestureState.dx;
                 let newY = lastPosition.current.y + gestureState.dy;
 
-                // Snap to nearest horizontal edge
                 const snapToRight = newX + FAB_SIZE / 2 > SCREEN_WIDTH / 2;
                 newX = snapToRight
                     ? SCREEN_WIDTH - FAB_SIZE - EDGE_PADDING
                     : EDGE_PADDING;
 
-                // Clamp vertically within safe area
-                const minY = 60; // below status bar
+                const minY = 60;
                 const maxY = SCREEN_HEIGHT - TAB_BAR_HEIGHT - FAB_SIZE - EDGE_PADDING;
                 newY = Math.max(minY, Math.min(newY, maxY));
 
-                // Animate snap
                 Animated.spring(position, {
                     toValue: { x: newX, y: newY },
                     useNativeDriver: false,
@@ -120,7 +116,6 @@ function DraggableAIFab({ onPress }) {
 
                 lastPosition.current = { x: newX, y: newY };
 
-                // If it was a tap (not a drag), open chatbot
                 if (!isDragging.current) {
                     onPress();
                 }
@@ -156,42 +151,37 @@ function HomeStack() {
             <Stack.Screen name="Dropoff" component={DropoffLocationScreen} />
             <Stack.Screen name="Messaging" component={MessagingScreen} />
             <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
+            <Stack.Screen name="RateJob" component={RateJobScreen} />
         </Stack.Navigator>
     );
 }
 
+// ================= CUSTOM TAB BAR =================
+// Separate component so useEffect can sync FAB visibility without breaking render
+function CustomTabBar({ onFabVisibilityChange, ...props }) {
+    const { state } = props;
+    const currentRoute = state.routes[state.index];
+    const routeName = getFocusedRouteNameFromRoute(currentRoute) ?? currentRoute.name;
+
+    useEffect(() => {
+        const hide = routeName === 'Messaging' || routeName === 'AIChatbot' || routeName === 'Pickup' || routeName === 'Dropoff';
+        onFabVisibilityChange(hide);
+    }, [routeName]);
+
+    return <BottomTabBar {...props} />;
+}
+
 // ================= USER STACK =================
 export default function UserStack() {
+    const navigation = useNavigation();
+    const [hideFAB, setHideFAB] = useState(false);
+
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <Tab.Navigator
-                tabBar={(props) => {
-                    const { state, navigation } = props;
-                    const currentRoute = state.routes[state.index];
-                    const routeName = getFocusedRouteNameFromRoute(currentRoute) ?? currentRoute.name;
-                    
-                    const hideFAB = routeName === 'Messaging' || routeName === 'AIChatbot' || routeName === 'Pickup' || routeName === 'Dropoff';
-                    
-                    return (
-                        <View style={{
-                            position: 'absolute',
-                            top: 0, bottom: 0, left: 0, right: 0,
-                            pointerEvents: 'box-none',
-                            zIndex: 100,
-                        }}>
-                            {/* BottomTabBar pinned at bottom */}
-                            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-                                <BottomTabBar {...props} />
-                            </View>
-                            {/* Draggable FAB — free to go anywhere on screen */}
-                            {!hideFAB && (
-                                <DraggableAIFab
-                                    onPress={() => navigation.navigate('HomeTab', { screen: 'AIChatbot' })}
-                                />
-                            )}
-                        </View>
-                    );
-                }}
+                tabBar={(props) => (
+                    <CustomTabBar {...props} onFabVisibilityChange={setHideFAB} />
+                )}
                 screenOptions={{
                     headerShown: false,
                     tabBarShowLabel: true,
@@ -277,6 +267,13 @@ export default function UserStack() {
                     }}
                 />
             </Tab.Navigator>
+
+            {/* FAB outside Tab.Navigator — floats above everything */}
+            {!hideFAB && (
+                <DraggableAIFab
+                    onPress={() => navigation.navigate('HomeTab', { screen: 'AIChatbot' })}
+                />
+            )}
         </View>
     );
 }
@@ -284,7 +281,6 @@ export default function UserStack() {
 // ================= STYLES =================
 const styles = StyleSheet.create({
     tabBar: {
-        position: 'absolute',
         height: Platform.OS === 'ios' ? 88 : 70,
         backgroundColor: C.surface,
         borderTopWidth: 1,

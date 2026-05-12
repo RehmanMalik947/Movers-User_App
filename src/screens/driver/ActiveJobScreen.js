@@ -113,6 +113,7 @@ export default function ActiveJobScreen() {
     };
 
     const action = getNextAction();
+    const isCompleted = job.status === 'COMPLETED';
 
     return (
         <SafeAreaView style={styles.safe}>
@@ -196,12 +197,30 @@ export default function ActiveJobScreen() {
                                 </>
                             )}
                         </TouchableOpacity>
-                    ) : (
-                        <View style={styles.completedBox}>
-                            <Icon name="checkmark-done-circle" size={30} color={C.white} />
-                            <Text style={styles.completedText}>Job Completed</Text>
+                    ) : isCompleted ? (
+                        <View>
+                            <View style={styles.completedBox}>
+                                <Icon name="checkmark-done-circle" size={30} color={C.white} />
+                                <Text style={styles.completedText}>Job Completed</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.rateBtn}
+                                onPress={() => navigation.navigate('RateJob', {
+                                    jobId,
+                                    toId: job.userId || job.customer_id,
+                                    toRole: 'customer',
+                                    toName: job.customer_name || job.userName || 'Customer',
+                                    myId: currentUser?.id,
+                                    myRole: 'driver',
+                                    jobTitle: job.title,
+                                })}
+                                activeOpacity={0.9}
+                            >
+                                <Icon name="star-outline" size={22} color={C.warning} />
+                                <Text style={styles.rateBtnText}>Rate Customer</Text>
+                            </TouchableOpacity>
                         </View>
-                    )}
+                    ) : null}
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -332,5 +351,18 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     completedText: { color: C.white, fontWeight: '800', fontSize: 18 },
+    rateBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: C.surface,
+        padding: 16,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: C.warning,
+        gap: 10,
+        marginTop: 12,
+    },
+    rateBtnText: { color: C.warning, fontWeight: '800', fontSize: 16 },
     emptyText: { color: C.textMuted, fontSize: 16, fontWeight: '500' },
 });

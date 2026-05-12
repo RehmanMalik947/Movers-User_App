@@ -98,7 +98,9 @@ export default function ChatListScreen({ navigation }) {
   const navigateToChat = (item) => {
     const isParticipant1 = item.participant1Id === userId;
     const otherId = isParticipant1 ? item.participant2Id : item.participant1Id;
-    const otherName = "Participant";
+    const otherName = item.participant1Id === userId
+      ? (item.participant2Name || (item.chatType === 'user-driver' ? 'Driver' : 'Truck Owner'))
+      : (item.participant1Name || (item.chatType === 'user-driver' ? 'Customer' : 'Driver'));
 
     navigation.navigate('Messaging', {
       chatId: item.id,
@@ -134,9 +136,9 @@ export default function ChatListScreen({ navigation }) {
 
   const renderChatTile = ({ item }) => {
     const isParticipant1 = item.participant1Id === userId;
-    const otherName = item.chatType === 'user-driver'
-      ? (isParticipant1 ? 'Driver' : 'Customer')
-      : (isParticipant1 ? 'Truck Owner' : 'Driver');
+    const otherName = isParticipant1
+      ? (item.participant2Name || (item.chatType === 'user-driver' ? 'Driver' : 'Truck Owner'))
+      : (item.participant1Name || (item.chatType === 'user-driver' ? 'Customer' : 'Driver'));
     
     const avatarColor = getRandomColor(item.id);
     const hasUnread = item.unreadCount > 0;

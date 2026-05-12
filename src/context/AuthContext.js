@@ -6,7 +6,8 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Restore session
     useEffect(() => {
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
             } catch (e) {
                 console.error("Failed to load user", e);
             } finally {
-                setIsLoading(false);
+                setIsInitialLoading(false);
             }
         };
         loadUser();
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, isLoading, isInitialLoading, login, signup, logout }}>
             {children}
         </AuthContext.Provider>
     );

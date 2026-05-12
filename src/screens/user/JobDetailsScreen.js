@@ -158,6 +158,26 @@ export default function JobDetailsScreen() {
                     </TouchableOpacity>
                 )}
 
+                {/* Rate Driver - only for completed jobs */}
+                {job.status === 'COMPLETED' && (
+                    <TouchableOpacity 
+                        style={styles.rateButton} 
+                        onPress={() => navigation.navigate('RateJob', {
+                            jobId: job.id,
+                            toId: job.driver_id,
+                            toRole: 'driver',
+                            toName: job.driver_name || 'Driver',
+                            myId: currentUser?.id,
+                            myRole: 'customer',
+                            jobTitle: job.title,
+                        })}
+                        activeOpacity={0.8}
+                    >
+                        <Icon name="star" size={20} color={C.warning} />
+                        <Text style={styles.rateButtonText}>Rate Driver</Text>
+                    </TouchableOpacity>
+                )}
+
                 {/* Main Card */}
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
@@ -313,6 +333,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
     },
-    chatButtonText: { color: C.white, fontWeight: '800', fontSize: 16 }
+    chatButtonText: { color: C.white, fontWeight: '800', fontSize: 16 },
+    rateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: C.surface,
+        padding: 16,
+        borderRadius: 20,
+        marginBottom: 20,
+        gap: 10,
+        borderWidth: 2,
+        borderColor: C.warning,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+    },
+    rateButtonText: { color: C.warning, fontWeight: '800', fontSize: 16 }
 });
 

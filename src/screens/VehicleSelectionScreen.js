@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setVehicle } from '../redux/slices/locationSlice';
+import { jobApi } from '../api/apiService';
 import {
   View,
   Text,
@@ -9,24 +10,25 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import Modal from 'react-native-modal';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
-  primary: '#1847B1',        // Deep navy blue
+  primary: '#1847B1', // Deep navy blue
   primaryStandard: '#2260D9', // Standard primary blue
-  primaryLight: '#E8EFFD',    // Light blue tint
-  bg: '#F8FAFC',              // Cool Gray Background
-  surface: '#FFFFFF',         // White
-  surfaceAlt: '#F8FAFC',      // Light background
-  textHead: '#0F172A',        // Dark text
-  textBody: '#334155',        // Body text
-  textMuted: '#64748B',       // Muted text
-  textLink: '#2260D9',        // Standard blue for links
-  border: '#E2E8F0',          // Border color
-  divider: '#E2E8F0',         // Divider color
+  primaryLight: '#E8EFFD', // Light blue tint
+  bg: '#F8FAFC', // Cool Gray Background
+  surface: '#FFFFFF', // White
+  surfaceAlt: '#F8FAFC', // Light background
+  textHead: '#0F172A', // Dark text
+  textBody: '#334155', // Body text
+  textMuted: '#64748B', // Muted text
+  textLink: '#2260D9', // Standard blue for links
+  border: '#E2E8F0', // Border color
+  divider: '#E2E8F0', // Divider color
   white: '#FFFFFF',
   success: '#10B981',
   error: '#EF4444',
@@ -37,78 +39,61 @@ export default function VehicleScreen() {
   const dispatch = useDispatch();
 
   const [openModal, setOpenModal] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // MAIN CATEGORY SELECTED
   const [selectedMainCatId, setSelectedMainCatId] = useState(null);
-
   // SUB CATEGORY SELECTED
   const [selectedSubCatId, setSelectedSubCatId] = useState(null);
-
   const [subCatsToShow, setSubCatsToShow] = useState([]);
-
   const [vehicleCount, setVehicleCount] = useState(1);
 
-  const vehicles = [
-    {
-      id: 1,
-      name: 'Suzuki',
-      image: require('../assets/smallTruck.png'),
-      capacity: '500 kg – 3 tons',
-      dimension: '12 ft × 6 ft × 6 ft',
-    },
-    {
-      id: 2,
-      name: 'Shehzore',
-      capacity: '1.0 tons – 2 tons',
-      dimension: '20 / 40 Feet',
-      image: require('../assets/pickup_truck.png'),
-    },
-    {
-      id: 3,
-      name: 'Mazda',
-      image: require('../assets/mediumTruck.png'),
-      subCategories: [
-        {
-          id: 11,
-          name: 'Suzuki Mazda',
-          capacity: '500 kg - 300 kg',
-          dimension: '5 ft × 3 ft × 3 ft',
-          image: require('../assets/mediumTruck.png'),
-        },
-        {
-          id: 12,
-          name: 'Suzuki Large',
-          capacity: '600 kg - 1200 kg',
-          dimension: '6 ft × 3.5 ft × 4 ft',
-          image: require('../assets/mediumTruck.png'),
-        },
-      ],
-    },
-    {
-      id: 4,
-      name: 'Trailer',
-      image: require('../assets/heavyTruck.png'),
-      subCategories: [
-        {
-          id: 21,
-          name: 'Trailer Normal',
-          capacity: '5 ton - 9.5 tons',
-          dimension: '8 ft × 5 ft × 5 ft',
-          image: require('../assets/heavyTruck.png'),
-        },
-        {
-          id: 22,
-          name: 'Trailer XL',
-          capacity: '12.5 tons - 15.0 tons',
-          dimension: '9 ft × 5 ft × 5 ft',
-          image: require('../assets/heavyTruck.png'),
-        },
-      ],
-    },
-  ];
+  const vehicleIcons = {
+    pickup: require('../assets/pickup_premium.png'),
+    shehzore: require('../assets/shehzore_premium.png'),
+    mazda: require('../assets/mazda_premium.png'),
+    mini_mazda: require('../assets/mini_mazda_premium.png'),
+    default: require('../assets/smallTruck.png'),
+  };
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching categories...');
+        const res = await jobApi.getCategories();
+        console.log('API Response:', JSON.stringify(res, null, 2));
+        
+        const data = res?.data ?? res ?? [];
+        console.log('Categories Data:', JSON.stringify(data, null, 2));
+        
+        const formatted = data.map(cat => {
+          const iconKey = cat.icon ? cat.icon.toLowerCase().replace(/\s+/g, '_') : 'default';
+          console.log(`Mapping category ${cat.name}: icon=${cat.icon} -> key=${iconKey}`);
+          return {
+            id: cat.id,
+            name: cat.name,
+            image: vehicleIcons[iconKey] || vehicleIcons.default,
+            capacity: cat.description || `Max Weight: ${cat.max_weight_kg || '—'} kg`,
+            dimension: cat.max_weight_kg ? `${cat.max_weight_kg} kg Capacity` : 'Standard',
+            subCategories: cat.subCategories || null
+          };
+        });
+        
+        setVehicles(formatted);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // ******** OPEN MAIN CATEGORY ********
-  const openSubCategoryModal = (item) => {
+  const openSubCategoryModal = item => {
     if (item.subCategories) {
       setSelectedMainCatId(item.id);
       setSubCatsToShow(item.subCategories);
@@ -123,9 +108,9 @@ export default function VehicleScreen() {
   // ******** FINAL SELECTED VEHICLE ********
   const finalSelectedVehicle = (() => {
     if (selectedSubCatId) {
-      return subCatsToShow.find((s) => s.id === selectedSubCatId);
+      return subCatsToShow.find(s => s.id === selectedSubCatId);
     } else if (selectedMainCatId) {
-      const mainVehicle = vehicles.find((v) => v.id === selectedMainCatId);
+      const mainVehicle = vehicles.find(v => v.id === selectedMainCatId);
       if (!mainVehicle.subCategories) return mainVehicle;
     }
     return null;
@@ -158,14 +143,20 @@ export default function VehicleScreen() {
 
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{item.name}</Text>
-          {item.capacity && <Text style={styles.subTxt}>Capacity: {item.capacity}</Text>}
-          {item.dimension && <Text style={styles.subTxt}>Dimensions: {item.dimension}</Text>}
+          {item.capacity && (
+            <Text style={styles.subTxt}>Capacity: {item.capacity}</Text>
+          )}
+          {item.dimension && (
+            <Text style={styles.subTxt}>Dimensions: {item.dimension}</Text>
+          )}
         </View>
 
         {item.subCategories ? (
           <Icon name="chevron-forward" size={20} color={C.textMuted} />
         ) : (
-          isSelected && <Icon name="checkmark-circle" size={24} color={C.primaryStandard} />
+          isSelected && (
+            <Icon name="checkmark-circle" size={24} color={C.primaryStandard} />
+          )
         )}
       </TouchableOpacity>
     );
@@ -193,20 +184,29 @@ export default function VehicleScreen() {
           <Text style={styles.subTxt}>Dimensions: {item.dimension}</Text>
         </View>
 
-        {isSelected && <Icon name="checkmark-circle" size={24} color={C.primaryStandard} />}
+        {isSelected && (
+          <Icon name="checkmark-circle" size={24} color={C.primaryStandard} />
+        )}
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={vehicles}
-        renderItem={renderVehicleCard}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={C.primary} />
+          <Text style={{ marginTop: 10, color: C.textMuted }}>Loading vehicles...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={vehicles}
+          renderItem={renderVehicleCard}
+          keyExtractor={item => item.id.toString()}
+          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <Modal
         isVisible={openModal}
@@ -221,7 +221,7 @@ export default function VehicleScreen() {
           <FlatList
             data={subCatsToShow}
             renderItem={renderSubCategoryCard}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={item => item.id.toString()}
             contentContainerStyle={{ paddingBottom: 30 }}
           />
         </View>
@@ -231,7 +231,9 @@ export default function VehicleScreen() {
         <View style={styles.bottomBar}>
           <View style={styles.qtyBox}>
             <TouchableOpacity
-              onPress={() => vehicleCount > 1 && setVehicleCount(vehicleCount - 1)}
+              onPress={() =>
+                vehicleCount > 1 && setVehicleCount(vehicleCount - 1)
+              }
               style={styles.qtyBtn}
             >
               <Icon name="remove" size={20} color={C.textHead} />
@@ -318,7 +320,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 20,
   },
-  modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 20, textAlign: 'center', color: C.textHead },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: C.textHead,
+  },
 
   bottomBar: {
     position: 'absolute',
@@ -364,7 +372,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  qtyNumber: { fontSize: 18, fontWeight: '700', marginHorizontal: 16, color: C.textHead },
+  qtyNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginHorizontal: 16,
+    color: C.textHead,
+  },
 
   nextBtn: {
     backgroundColor: C.primary,
@@ -383,4 +396,3 @@ const styles = StyleSheet.create({
 
   nextTxt: { fontSize: 16, fontWeight: '700', color: C.white },
 });
-

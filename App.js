@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar, useColorScheme, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
@@ -14,27 +14,34 @@ import UserStack from './src/navigation/UserStack';
 import OwnerStack from './src/navigation/OwnerStack';
 import DriverStack from './src/navigation/DriverStack';
 
+import LoadingOverlay from './src/components/LoadingOverlay';
+
 function RootNavigator() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isInitialLoading } = useAuth();
 
-  if (isLoading) {
-    return null; // Or a splash screen
+  if (isInitialLoading) {
+    return (
+      <View style={{ flex: 1 }}>
+        <LoadingOverlay visible={true} message="Initializing..." />
+      </View>
+    );
   }
 
-  if (!user) {
-    return <AuthStack />;
-  }
-
-  if (user.role === 'owner') {
-    return <OwnerStack />;
-  }
-
-  if (user.role === 'driver') {
-    return <DriverStack />;
-  }
-
-  // Default to User
-  return <UserStack />;
+  return (
+    <View style={{ flex: 1 }}>
+      {!user ? (
+        <AuthStack />
+      ) : user.role === 'owner' ? (
+        <OwnerStack />
+      ) : user.role === 'driver' ? (
+        <DriverStack />
+      ) : (
+        <UserStack />
+      )}
+      
+      <LoadingOverlay visible={isLoading} />
+    </View>
+  );
 }
 
 export default function App() {

@@ -1,10 +1,10 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import React, { useCallback, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { mockApi } from '../../api/mockService';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { chatApi } from '../../api/apiService';
+import { chatApi, driverApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
@@ -32,8 +32,46 @@ export default function DriverDashboard() {
     const navigation = useNavigation();
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isOnline, setIsOnline] = useState(false);
+    const [statusLoading, setStatusLoading] = useState(false);
+
+    const fetchStatus = async () => {
+        try {
+            const res = await driverApi.getProfile();
+            if (res.success) {
+                setIsOnline(res.driver.is_online);
+            }
+        } catch (error) {
+            console.error('Fetch status error:', error);
+        }
+    };
+
+    const toggleStatus = async () => {
+        setStatusLoading(true);
+        try {
+            const newStatus = !isOnline;
+            const res = await driverApi.toggleOnline(newStatus);
+            if (res.success) {
+                setIsOnline(newStatus);
+                if (newStatus) {
+                    loadJobs();
+                } else {
+                    setJobs([]);
+                }
+            }
+        } catch (error) {
+            Alert.alert("Error", "Could not update status");
+        } finally {
+            setStatusLoading(false);
+        }
+    };
 
     const loadJobs = async () => {
+        if (!isOnline) {
+            setJobs([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const data = await mockApi.getDriverJobs(user.id);
@@ -69,8 +107,9 @@ export default function DriverDashboard() {
 
     useFocusEffect(
         useCallback(() => {
+            fetchStatus();
             loadJobs();
-        }, [])
+        }, [isOnline])
     );
 
     const renderJobItem = ({ item }) => {
@@ -119,14 +158,44 @@ export default function DriverDashboard() {
         <SafeAreaView style={styles.safe}>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                         <Text style={styles.welcomeText}>Hello, Captain {user?.name} 👋</Text>
                         <Text style={styles.subText}>Ready for your next move?</Text>
                     </View>
-                    <TouchableOpacity style={styles.chatBtn} onPress={handleContactOwner} activeOpacity={0.7}>
-                        <Icon name="chatbubble-ellipses" size={24} color={C.white} />
-                        <View style={styles.chatBadge} />
-                    </TouchableOpacity>
+                    
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity 
+                            style={[
+                                styles.statusPill, 
+                                isOnline ? styles.pillOnline : styles.pillOffline
+                            ]} 
+                            onPress={toggleStatus}
+                            disabled={statusLoading}
+                            activeOpacity={0.8}
+                        >
+                            {statusLoading ? (
+                                <ActivityIndicator size="small" color={isOnline ? C.white : C.primary} />
+                            ) : (
+                                <>
+                                    <View style={[styles.statusIndicator, { backgroundColor: isOnline ? C.success : '#CBD5E1' }]} />
+                                    <Text style={[styles.statusPillText, isOnline ? styles.textWhite : styles.textMuted]}>
+                                        {isOnline ? 'ONLINE' : 'OFFLINE'}
+                                    </Text>
+                                    <Icon 
+                                        name={isOnline ? "chevron-down" : "chevron-forward"} 
+                                        size={14} 
+                                        color={isOnline ? C.white : C.textMuted} 
+                                        style={{ marginLeft: 4 }}
+                                    />
+                                </>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.chatBtn} onPress={handleContactOwner} activeOpacity={0.7}>
+                            <Icon name="chatbubble-ellipses" size={24} color={C.primary} />
+                            <View style={styles.chatBadge} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <View style={styles.statsRow}>
@@ -152,8 +221,14 @@ export default function DriverDashboard() {
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={loadJobs} tintColor={C.primaryStandard} />}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Icon name="calendar-outline" size={50} color={C.border} />
-                            <Text style={styles.emptyText}>No jobs assigned yet.</Text>
+                            <Icon 
+                                name={isOnline ? "calendar-outline" : "moon-outline"} 
+                                size={50} 
+                                color={C.border} 
+                            />
+                            <Text style={styles.emptyText}>
+                                {isOnline ? "No jobs assigned yet." : "You are currently offline. Go online to see jobs."}
+                            </Text>
                         </View>
                     }
                 />
@@ -174,29 +249,65 @@ const styles = StyleSheet.create({
     },
     welcomeText: { fontSize: 22, fontWeight: '800', color: C.textHead, letterSpacing: -0.5 },
     subText: { fontSize: 14, color: C.textMuted, marginTop: 2 },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12
+    },
+    statusPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 25,
+        gap: 8,
+        borderWidth: 1.5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    pillOnline: {
+        backgroundColor: C.primary,
+        borderColor: C.primary,
+    },
+    pillOffline: {
+        backgroundColor: C.surface,
+        borderColor: C.border,
+    },
+    statusIndicator: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        borderWidth: 2,
+        borderColor: C.white,
+    },
+    statusPillText: {
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    textWhite: { color: C.white },
+    textMuted: { color: C.textMuted },
     chatBtn: { 
-        width: 52, 
-        height: 52, 
-        borderRadius: 18, 
-        backgroundColor: C.primary, 
+        width: 48, 
+        height: 48, 
+        borderRadius: 16, 
+        backgroundColor: C.primaryLight, 
         justifyContent: 'center', 
         alignItems: 'center',
-        shadowColor: C.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6
     },
     chatBadge: {
         position: 'absolute',
-        top: 14,
-        right: 14,
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        top: 12,
+        right: 12,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
         backgroundColor: C.success,
-        borderWidth: 1.5,
-        borderColor: C.primary,
+        borderWidth: 2,
+        borderColor: C.surface,
     },
     statsRow: {
         flexDirection: 'row',

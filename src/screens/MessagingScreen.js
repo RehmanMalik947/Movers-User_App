@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, PermissionsAndroid, KeyboardAvoidingView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { GiftedChat, Bubble, InputToolbar, Send, MessageText } from 'react-native-gifted-chat';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, PermissionsAndroid, Alert } from 'react-native';
+import { GiftedChat, Bubble, InputToolbar, Send } from 'react-native-gifted-chat';
+import { useNavigation } from '@react-navigation/native';
 import { chatApi } from '../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
 import socketService from '../utils/SocketService';
@@ -37,6 +36,8 @@ export default function MessagingScreen({ route, navigation }) {
     const [isRecording, setIsRecording] = useState(false);
     const [recordTime, setRecordTime] = useState('00:00');
     const [isLoading, setIsLoading] = useState(true);
+    const messagesRef = useRef(messages);
+    messagesRef.current = messages;
 
     useEffect(() => {
         navigation.setOptions({ 
@@ -45,25 +46,44 @@ export default function MessagingScreen({ route, navigation }) {
             headerTintColor: C.textHead,
             headerTitleStyle: { fontWeight: '700' },
         });
+
+        const setupSocket = async () => {
+            await socketService.connect();
+            
+            if (!socketService.isConnected()) {
+                await new Promise((resolve) => {
+                    const check = () => {
+                        if (socketService.isConnected()) {
+                            resolve();
+                        } else {
+                            setTimeout(check, 100);
+                        }
+                    };
+                    check();
+                    setTimeout(resolve, 5000);
+                });
+            }
+            
+            socketService.joinRoom(chatId);
+
+            socketService.onReceiveMessage((newMessage) => {
+                const formattedMsg = formatMessageForGiftedChat(newMessage);
+                setMessages(previousMessages => GiftedChat.append(previousMessages, formattedMsg));
+            });
+
+            socketService.onTyping((data) => {
+                setIsTyping(data.isTyping);
+            });
+
+            socketService.onMessagesRead((data) => {
+                setMessages(prev => prev.map(m => ({ ...m, received: true, pending: false })));
+            });
+
+            socketService.markRead(chatId, myId);
+        };
+
         loadChatHistory();
-        
-        socketService.connect();
-        socketService.joinRoom(chatId);
-
-        socketService.onReceiveMessage((newMessage) => {
-            const formattedMsg = formatMessageForGiftedChat(newMessage);
-            setMessages(previousMessages => GiftedChat.append(previousMessages, formattedMsg));
-        });
-
-        socketService.onTyping((data) => {
-            setIsTyping(data.isTyping);
-        });
-
-        socketService.onMessagesRead((data) => {
-            setMessages(prev => prev.map(m => ({ ...m, received: true, pending: false })));
-        });
-
-        socketService.markRead(chatId, myId);
+        setupSocket();
 
         return () => {
             socketService.leaveRoom(chatId);
@@ -86,7 +106,7 @@ export default function MessagingScreen({ route, navigation }) {
     };
 
     const formatMessageForGiftedChat = (msg) => {
-        const isMe = msg.senderId === myId;
+        const isMe = String(msg.senderId) === String(myId);
         return {
             _id: msg.id,
             text: msg.messageType === 'text' ? msg.content : '',
@@ -106,12 +126,30 @@ export default function MessagingScreen({ route, navigation }) {
         const messageData = {
             chatId,
             senderId: myId,
+            senderName: myName,
             senderType: myRole,
             content: msg.text,
             messageType: 'text',
         };
-        socketService.sendMessage(messageData);
-    }, []);
+
+        const optimisticMsg = {
+            _id: `${Date.now()}-${Math.random()}`,
+            text: msg.text,
+            createdAt: new Date(),
+            user: {
+                _id: myId,
+                name: myName,
+            },
+            sent: true,
+            pending: true,
+        };
+
+        setMessages(prev => GiftedChat.append(prev, [optimisticMsg]));
+        const sent = socketService.sendMessage(messageData);
+        if (!sent) {
+            console.warn('Message queued/failed - socket not connected');
+        }
+    }, [chatId, myId, myRole, myName]);
 
     const startRecording = async () => {
         if (Platform.OS === 'android') {
@@ -213,11 +251,7 @@ export default function MessagingScreen({ route, navigation }) {
     }
 
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            style={styles.container}
-        >
+        <View style={styles.container}>
             <GiftedChat
                 messages={messages}
                 onSend={onSend}
@@ -225,9 +259,10 @@ export default function MessagingScreen({ route, navigation }) {
                 renderBubble={renderBubble}
                 renderMessageAudio={renderMessageAudio}
                 isTyping={isTyping}
-                renderTime={() => null} // We'll use custom time if needed
+                renderTime={() => null}
                 renderAvatar={null}
                 alwaysShowSend
+                keyboardShouldPersistTaps="never"
                 renderSend={(props) => (
                     <Send {...props} containerStyle={styles.sendContainer}>
                         <View style={styles.sendBtn}>
@@ -240,20 +275,10 @@ export default function MessagingScreen({ route, navigation }) {
                         {...props} 
                         containerStyle={styles.inputToolbar}
                         primaryStyle={styles.inputPrimary}
-                        /* renderAccessory={() => (
-                            <TouchableOpacity 
-                                onPress={isRecording ? stopRecording : startRecording}
-                                style={[styles.recordButton, isRecording && styles.recordingActive]}
-                                activeOpacity={0.7}
-                            >
-                                <Icon name={isRecording ? 'stop-circle' : 'mic'} size={24} color={isRecording ? C.error : C.textMuted} />
-                                {isRecording && <Text style={styles.recordTimer}>{recordTime}</Text>}
-                            </TouchableOpacity>
-                        )} */
                     />
                 )}
             />
-        </KeyboardAvoidingView>
+        </View>
     );
 }
 
