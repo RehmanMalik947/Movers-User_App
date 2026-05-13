@@ -113,4 +113,11 @@ export const driverApi = {
     toggleOnline: (is_online) => apiService.patch('drivers/toggle-online', { is_online }),
 };
 
+export const walletApi = {
+    getWallet: () => apiService.get('/wallet'),
+    getHistory: () => apiService.get('/wallet/history'),
+    requestWithdraw: (data) => apiService.post('/wallet/withdraw', data),
+    topup: (data) => apiService.post('/wallet/topup', data),
+};
+
 export default apiService;

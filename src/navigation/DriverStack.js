@@ -8,6 +8,7 @@ import ActiveJobScreen from '../screens/driver/ActiveJobScreen';
 import MessagingScreen from '../screens/MessagingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ChatStack from './ChatStack';
+import WalletStack from './WalletStack';
 import RateJobScreen from '../screens/RateJobScreen';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
@@ -60,6 +61,15 @@ export default function DriverStack() {
                 options={{
                     tabBarIcon: ({ color, focused }) => (
                         <Icon name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={22} color={color} />
+                    )
+                }}
+            />
+            <Tab.Screen
+                name="Wallet"
+                component={WalletStack}
+                options={{
+                    tabBarIcon: ({ color, focused }) => (
+                        <Icon name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />
                     )
                 }}
             />

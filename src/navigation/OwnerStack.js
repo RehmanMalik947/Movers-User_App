@@ -12,6 +12,7 @@ import MyDriversScreen from '../screens/owner/MyDriversScreen';
 import MessagingScreen from '../screens/MessagingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ChatStack from './ChatStack';
+import WalletStack from './WalletStack';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
@@ -88,6 +89,16 @@ export default function OwnerStack() {
                 options={{
                     tabBarIcon: ({ color, focused }) => (
                         <Icon name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={22} color={color} />
+                    ),
+                }}
+            />
+
+            <Tab.Screen
+                name="Wallet"
+                component={WalletStack}
+                options={{
+                    tabBarIcon: ({ color, focused }) => (
+                        <Icon name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />
                     ),
                 }}
             />

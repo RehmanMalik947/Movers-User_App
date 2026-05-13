@@ -191,7 +191,11 @@ export default function DriverDashboard() {
                             )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.chatBtn} onPress={handleContactOwner} activeOpacity={0.7}>
+                        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.7}>
+                            <Icon name="wallet" size={24} color={C.primary} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.headerBtn} onPress={handleContactOwner} activeOpacity={0.7}>
                             <Icon name="chatbubble-ellipses" size={24} color={C.primary} />
                             <View style={styles.chatBadge} />
                         </TouchableOpacity>
@@ -290,7 +294,7 @@ const styles = StyleSheet.create({
     },
     textWhite: { color: C.white },
     textMuted: { color: C.textMuted },
-    chatBtn: { 
+    headerBtn: { 
         width: 48, 
         height: 48, 
         borderRadius: 16, 
