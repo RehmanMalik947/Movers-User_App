@@ -88,28 +88,28 @@ export default function JobDetailsScreen() {
     };
 
     const handleChatWithDriver = async () => {
-        if (!job.driver_id) {
-            Alert.alert("Notice", "Driver not assigned yet.");
-            return;
+      if (!job.driver_id) {
+        Alert.alert('Notice', 'Driver not assigned yet.');
+        return;
+      }
+      setActionLoading(true);
+      try {
+        const res = await chatApi.startConversation(currentUser.id, job.driver_id, 'user-driver');
+        if (res.success) {
+          navigation.navigate('Messages', {
+            screen: 'Chat',
+            params: {
+              conversationId: res.data.id,
+              otherId: job.driver_id,
+              otherName: job.driver_name || 'Driver',
+            },
+          });
         }
-        setActionLoading(true);
-        try {
-            const chatRes = await chatApi.startChat(currentUser.id, job.driver_id, 'user-driver');
-            if (chatRes.success) {
-                navigation.navigate('Messaging', {
-                    chatId: chatRes.data.id,
-                    otherId: job.driver_id,
-                    otherName: job.driver_name || 'Driver',
-                    myId: currentUser.id,
-                    myName: currentUser.name,
-                    myRole: 'User'
-                });
-            }
-        } catch (error) {
-            Alert.alert("Error", "Could not start chat");
-        } finally {
-            setActionLoading(false);
-        }
+      } catch (err) {
+        Alert.alert('Error', 'Could not start chat');
+      } finally {
+        setActionLoading(false);
+      }
     };
 
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={C.primaryStandard} /></View>;
@@ -147,15 +147,15 @@ export default function JobDetailsScreen() {
 
                 {/* Chat with Driver */}
                 {(job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS') && (
-                    <TouchableOpacity 
-                        style={styles.chatButton} 
-                        onPress={handleChatWithDriver}
-                        disabled={actionLoading}
-                        activeOpacity={0.8}
-                    >
-                        <Icon name="chatbubbles" size={20} color={C.white} />
-                        <Text style={styles.chatButtonText}>Chat with Driver</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.chatButton}
+                    onPress={handleChatWithDriver}
+                    disabled={actionLoading}
+                    activeOpacity={0.8}
+                  >
+                    <Icon name="chatbubbles" size={20} color={C.white} />
+                    <Text style={styles.chatButtonText}>Chat with Driver</Text>
+                  </TouchableOpacity>
                 )}
 
                 {/* Rate Driver - only for completed jobs */}
@@ -319,19 +319,19 @@ const styles = StyleSheet.create({
     bidStatusText: { color: C.textMuted, fontSize: 13, fontWeight: '600' },
 
     chatButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: C.success,
-        padding: 16,
-        borderRadius: 20,
-        marginBottom: 20,
-        gap: 10,
-        elevation: 4,
-        shadowColor: C.success,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.success,
+      padding: 16,
+      borderRadius: 20,
+      marginBottom: 20,
+      gap: 10,
+      elevation: 4,
+      shadowColor: C.success,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
     },
     chatButtonText: { color: C.white, fontWeight: '800', fontSize: 16 },
     rateButton: {

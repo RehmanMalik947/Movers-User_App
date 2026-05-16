@@ -9,10 +9,9 @@ import AssignDriverScreen from '../screens/owner/AssignDriverScreen';
 import OwnerJobsScreen from '../screens/owner/OwnerJobsScreen';
 import MyTrucksScreen from '../screens/owner/MyTrucksScreen';
 import MyDriversScreen from '../screens/owner/MyDriversScreen';
-import MessagingScreen from '../screens/MessagingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import ChatStack from './ChatStack';
 import WalletStack from './WalletStack';
+import ChatStack from './ChatStack';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
@@ -34,7 +33,6 @@ function OwnerHomeStack() {
             <Stack.Screen name="BidOnJob" component={BidOnJobScreen} />
             <Stack.Screen name="AssignDriver" component={AssignDriverScreen} />
             <Stack.Screen name="MyJobs" component={OwnerJobsScreen} />
-            <Stack.Screen name="Messaging" component={MessagingScreen} />
         </Stack.Navigator>
     );
 }

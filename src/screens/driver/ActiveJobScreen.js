@@ -66,29 +66,29 @@ export default function ActiveJobScreen() {
     };
 
     const handleChatWithCustomer = async () => {
-        if (!job.customer_id && !job.userId) {
-            Alert.alert("Notice", "Customer information not found.");
-            return;
+      const customerId = job.customer_id || job.userId;
+      if (!customerId) {
+        Alert.alert('Notice', 'Customer information not found.');
+        return;
+      }
+      setUpdating(true);
+      try {
+        const res = await chatApi.startConversation(currentUser.id, customerId, 'user-driver');
+        if (res.success) {
+          navigation.navigate('Messages', {
+            screen: 'Chat',
+            params: {
+              conversationId: res.data.id,
+              otherId: customerId,
+              otherName: job.customer_name || 'Customer',
+            },
+          });
         }
-        setUpdating(true);
-        const customerId = job.customer_id || job.userId;
-        try {
-            const chatRes = await chatApi.startChat(currentUser.id, customerId, 'user-driver');
-            if (chatRes.success) {
-                navigation.navigate('Messaging', {
-                    chatId: chatRes.data.id,
-                    otherId: customerId,
-                    otherName: job.customer_name || 'Customer',
-                    myId: currentUser.id,
-                    myName: currentUser.name,
-                    myRole: 'Driver'
-                });
-            }
-        } catch (error) {
-            Alert.alert("Error", "Could not start chat");
-        } finally {
-            setUpdating(false);
-        }
+      } catch (err) {
+        Alert.alert('Error', 'Could not start chat');
+      } finally {
+        setUpdating(false);
+      }
     };
 
     if (loading) return (
@@ -173,14 +173,14 @@ export default function ActiveJobScreen() {
                 </View>
 
                 <View style={styles.actionsContainer}>
-                    <TouchableOpacity 
-                        style={styles.chatButton} 
-                        onPress={handleChatWithCustomer}
-                        disabled={updating}
-                        activeOpacity={0.8}
+                    <TouchableOpacity
+                      style={styles.chatButton}
+                      onPress={handleChatWithCustomer}
+                      disabled={updating}
+                      activeOpacity={0.8}
                     >
-                        <Icon name="chatbubble-ellipses-outline" size={22} color={C.primaryStandard} />
-                        <Text style={styles.chatButtonText}>Chat with Customer</Text>
+                      <Icon name="chatbubble-ellipses-outline" size={22} color={C.primaryStandard} />
+                      <Text style={styles.chatButtonText}>Chat with Customer</Text>
                     </TouchableOpacity>
 
                     {action ? (
@@ -311,20 +311,20 @@ const styles = StyleSheet.create({
 
     actionsContainer: { gap: 16, marginBottom: 40 },
     chatButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: C.surface,
-        padding: 16,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: C.primaryStandard,
-        gap: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surface,
+      padding: 16,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: C.primaryStandard,
+      gap: 10,
     },
     chatButtonText: {
-        color: C.primaryStandard,
-        fontWeight: '700',
-        fontSize: 16,
+      color: C.primaryStandard,
+      fontWeight: '700',
+      fontSize: 16,
     },
     bigBtn: { 
         backgroundColor: C.primary, 

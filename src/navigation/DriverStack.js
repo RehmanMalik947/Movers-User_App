@@ -5,11 +5,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DriverDashboard from '../screens/driver/DriverDashboard';
 import ActiveJobScreen from '../screens/driver/ActiveJobScreen';
-import MessagingScreen from '../screens/MessagingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import ChatStack from './ChatStack';
 import WalletStack from './WalletStack';
 import RateJobScreen from '../screens/RateJobScreen';
+import ChatStack from './ChatStack';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
@@ -29,7 +28,6 @@ function DriverHomeStack() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="DriverDashboard" component={DriverDashboard} />
             <Stack.Screen name="ActiveJob" component={ActiveJobScreen} />
-            <Stack.Screen name="Messaging" component={MessagingScreen} />
             <Stack.Screen name="RateJob" component={RateJobScreen} />
         </Stack.Navigator>
     );

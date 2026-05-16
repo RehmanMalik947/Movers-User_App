@@ -63,6 +63,24 @@ export default function MyDriversScreen() {
   const navigation = useNavigation();
   const { user: currentUser } = useAuth();
 
+  const handleChatWithDriver = async (driver) => {
+    try {
+      const res = await chatApi.startConversation(currentUser.id, driver.id, 'driver-owner');
+      if (res.success) {
+        navigation.navigate('Messages', {
+          screen: 'Chat',
+          params: {
+            conversationId: res.data.id,
+            otherId: driver.id,
+            otherName: driver.name,
+          },
+        });
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Could not start chat');
+    }
+  };
+
   const loadDrivers = async () => {
     setLoading(true);
     try {
@@ -227,28 +245,6 @@ export default function MyDriversScreen() {
     );
   };
 
-  const handleChatWithDriver = async (driver) => {
-    try {
-      const chatRes = await chatApi.startChat(currentUser.id, driver.id, 'driver-owner');
-      const data = chatRes.data || chatRes;
-      if (chatRes.success || data.id) {
-        navigation.navigate('Messages', {
-          screen: 'Messaging',
-          params: {
-            chatId: data.id,
-            otherId: driver.id,
-            otherName: driver.name,
-            myId: currentUser.id,
-            myName: currentUser.name,
-            myRole: 'TruckOwner'
-          }
-        });
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Could not start chat');
-    }
-  };
-
   const renderItem = ({ item }) => (
     <TouchableOpacity 
         style={styles.card} 
@@ -279,8 +275,8 @@ export default function MyDriversScreen() {
             <Text style={styles.licence}>#{item.licence_number || '—'}</Text>
         </View>
       </View>
-      <TouchableOpacity 
-        style={styles.chatIconBtn} 
+      <TouchableOpacity
+        style={styles.chatIconBtn}
         onPress={() => handleChatWithDriver(item)}
         activeOpacity={0.7}
       >

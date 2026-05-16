@@ -5,129 +5,110 @@ import { API_BASE_URL } from '../config/api';
 const SOCKET_URL = API_BASE_URL.replace('/api/', '');
 
 class SocketService {
-    socket = null;
+  socket = null;
 
-    async connect() {
-        if (this.socket?.connected) return;
-
-        if (this.socket) {
-            this.socket.connect();
-            return;
-        }
-
-        const token = await AsyncStorage.getItem('token');
-
-        const SOCKET_URL_CLEAN = SOCKET_URL.endsWith('/') ? SOCKET_URL.slice(0, -1) : SOCKET_URL;
-
-        this.socket = io(SOCKET_URL_CLEAN, {
-            transports: ['polling', 'websocket'],
-            auth: { token: `Bearer ${token}` },
-            reconnection: true,
-            reconnectionAttempts: Infinity,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-        });
-
-        this.socket.on('connect', () => {
-            console.log('Connected to socket server');
-        });
-
-        this.socket.on('disconnect', (reason) => {
-            console.log('Disconnected:', reason);
-        });
-
-        this.socket.on('connect_error', (error) => {
-            console.error('Socket connection error:', error.message);
-        });
-
-        this.socket.on('error', (error) => {
-            console.error('Socket error:', error);
-        });
+  async connect() {
+    if (this.socket?.connected) return;
+    if (this.socket) {
+      this.socket.connect();
+      return;
     }
 
-    isConnected() {
-        return this.socket?.connected ?? false;
-    }
+    const token = await AsyncStorage.getItem('token');
+    const cleanUrl = SOCKET_URL.endsWith('/') ? SOCKET_URL.slice(0, -1) : SOCKET_URL;
 
-    disconnect() {
-        if (this.socket) {
-            this.socket.removeAllListeners();
-            this.socket.disconnect();
-            this.socket = null;
-        }
-    }
+    this.socket = io(cleanUrl, {
+      transports: ['polling', 'websocket'],
+      auth: { token: `Bearer ${token}` },
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
 
-    joinRoom(chatId) {
+    this.socket.on('connect', () => console.log('Socket connected'));
+    this.socket.on('disconnect', (reason) => console.log('Socket disconnected:', reason));
+    this.socket.on('connect_error', (error) => console.error('Socket error:', error.message));
+  }
+
+  isConnected() {
+    return this.socket?.connected ?? false;
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  joinConversation(id) {
+    if (this.socket?.connected) {
+      this.socket.emit('join_conversation', id);
+    } else {
+      const tryJoin = () => {
         if (this.socket?.connected) {
-            this.socket.emit('join_room', chatId);
-        } else {
-            const tryJoin = () => {
-                if (this.socket?.connected) {
-                    this.socket.emit('join_room', chatId);
-                    this.socket.off('connect', tryJoin);
-                }
-            };
-            this.socket?.on('connect', tryJoin);
+          this.socket.emit('join_conversation', id);
+          this.socket.off('connect', tryJoin);
         }
+      };
+      this.socket?.on('connect', tryJoin);
     }
+  }
 
-    leaveRoom(chatId) {
-        if (this.socket?.connected) {
-            this.socket.emit('leave_room', chatId);
-        }
+  leaveConversation(id) {
+    if (this.socket?.connected) {
+      this.socket.emit('leave_conversation', id);
     }
+  }
 
-    sendMessage(messageData) {
-        if (this.socket?.connected) {
-            this.socket.emit('send_message', messageData);
-            return true;
-        }
-        console.warn('Socket not connected, message not sent');
-        return false;
+  sendMessage(data) {
+    if (this.socket?.connected) {
+      this.socket.emit('send_message', data);
+      return true;
     }
+    return false;
+  }
 
-    onReceiveMessage(callback) {
-        if (this.socket) {
-            this.socket.off('receive_message');
-            this.socket.on('receive_message', callback);
-        }
+  onReceiveMessage(callback) {
+    if (this.socket) {
+      this.socket.off('receive_message');
+      this.socket.on('receive_message', callback);
     }
+  }
 
-    onTyping(callback) {
-        if (this.socket) {
-            this.socket.off('display_typing');
-            this.socket.on('display_typing', callback);
-        }
+  emitTyping(conversationId, senderName, isTyping) {
+    if (this.socket?.connected) {
+      this.socket.emit('typing', { conversationId, senderName, isTyping });
     }
+  }
 
-    emitTyping(chatId, senderName, isTyping) {
-        if (this.socket?.connected) {
-            this.socket.emit('typing', { chatId, senderName, isTyping });
-        }
+  onTyping(callback) {
+    if (this.socket) {
+      this.socket.off('display_typing');
+      this.socket.on('display_typing', callback);
     }
+  }
 
-    markRead(chatId, readerId, messageId = null) {
-        if (this.socket?.connected) {
-            this.socket.emit('mark_read', { chatId, readerId, messageId });
-        }
+  markRead(conversationId, readerId) {
+    if (this.socket?.connected) {
+      this.socket.emit('mark_read', { conversationId, readerId });
     }
+  }
 
-    onMessagesRead(callback) {
-        if (this.socket) {
-            this.socket.off('messages_read');
-            this.socket.on('messages_read', callback);
-        }
+  onMessagesRead(callback) {
+    if (this.socket) {
+      this.socket.off('messages_read');
+      this.socket.on('messages_read', callback);
     }
+  }
 
-    removeListener(event) {
-        if (this.socket) {
-            this.socket.off(event);
-        }
+  removeListener(event) {
+    if (this.socket) {
+      this.socket.off(event);
     }
-
-    getSocketId() {
-        return this.socket?.id ?? null;
-    }
+  }
 }
 
 const socketService = new SocketService();

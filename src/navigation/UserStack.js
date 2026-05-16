@@ -1,8 +1,8 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Platform, PanResponder, Animated, Dimensions } from 'react-native';
-import { createBottomTabNavigator, BottomTabBar } from '@react-navigation/bottom-tabs';
+import React from 'react';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { getFocusedRouteNameFromRoute, useNavigation } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Screens
@@ -14,10 +14,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import PickupLocationScreen from '../screens/setPickup';
 import DropoffLocationScreen from '../screens/DropoffLocation';
 import PlaceOrderScreen from '../screens/PlaceOrderScreen';
-import AIChatbotScreen from '../screens/user/AIChatbotScreen';
-import MessagingScreen from '../screens/MessagingScreen';
-import ChatStack from './ChatStack';
 import RateJobScreen from '../screens/RateJobScreen';
+import ChatStack from './ChatStack';
 
 // ─── Design Tokens - Matching Premium Aesthetic ──────────────────────────────────
 const C = {
@@ -51,95 +49,6 @@ const CustomTabBarButton = ({ children, onPress }) => (
     </TouchableOpacity>
 );
 
-// ================= DRAGGABLE AI FAB =================
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const FAB_SIZE = 56;
-const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 70;
-const EDGE_PADDING = 12;
-
-function DraggableAIFab({ onPress }) {
-    const position = useRef(new Animated.ValueXY({
-        x: SCREEN_WIDTH - FAB_SIZE - 20,
-        y: SCREEN_HEIGHT - TAB_BAR_HEIGHT - FAB_SIZE - 20,
-    })).current;
-
-    const lastPosition = useRef({
-        x: SCREEN_WIDTH - FAB_SIZE - 20,
-        y: SCREEN_HEIGHT - TAB_BAR_HEIGHT - FAB_SIZE - 20,
-    });
-
-    const isDragging = useRef(false);
-    const dragDistance = useRef(0);
-
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: (_, gestureState) => {
-                return Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3;
-            },
-            onPanResponderGrant: () => {
-                isDragging.current = false;
-                dragDistance.current = 0;
-                position.setOffset({
-                    x: lastPosition.current.x,
-                    y: lastPosition.current.y,
-                });
-                position.setValue({ x: 0, y: 0 });
-            },
-            onPanResponderMove: (_, gestureState) => {
-                dragDistance.current = Math.sqrt(gestureState.dx ** 2 + gestureState.dy ** 2);
-                if (dragDistance.current > 5) isDragging.current = true;
-                position.setValue({ x: gestureState.dx, y: gestureState.dy });
-            },
-            onPanResponderRelease: (_, gestureState) => {
-                position.flattenOffset();
-
-                let newX = lastPosition.current.x + gestureState.dx;
-                let newY = lastPosition.current.y + gestureState.dy;
-
-                const snapToRight = newX + FAB_SIZE / 2 > SCREEN_WIDTH / 2;
-                newX = snapToRight
-                    ? SCREEN_WIDTH - FAB_SIZE - EDGE_PADDING
-                    : EDGE_PADDING;
-
-                const minY = 60;
-                const maxY = SCREEN_HEIGHT - TAB_BAR_HEIGHT - FAB_SIZE - EDGE_PADDING;
-                newY = Math.max(minY, Math.min(newY, maxY));
-
-                Animated.spring(position, {
-                    toValue: { x: newX, y: newY },
-                    useNativeDriver: false,
-                    tension: 60,
-                    friction: 8,
-                }).start();
-
-                lastPosition.current = { x: newX, y: newY };
-
-                if (!isDragging.current) {
-                    onPress();
-                }
-            },
-        })
-    ).current;
-
-    return (
-        <Animated.View
-            style={[
-                styles.fabContainer,
-                { transform: position.getTranslateTransform() },
-            ]}
-            {...panResponder.panHandlers}
-        >
-            <View style={styles.fab}>
-                <View style={styles.fabGradient}>
-                    <Icon name="sparkles" size={24} color="#fff" />
-                </View>
-            </View>
-        </Animated.View>
-    );
-}
-
 // ================= HOME STACK =================
 function HomeStack() {
     return (
@@ -149,39 +58,16 @@ function HomeStack() {
             <Stack.Screen name="JobDetails" component={JobDetailsScreen} />
             <Stack.Screen name="Pickup" component={PickupLocationScreen} />
             <Stack.Screen name="Dropoff" component={DropoffLocationScreen} />
-            <Stack.Screen name="Messaging" component={MessagingScreen} />
-            <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
             <Stack.Screen name="RateJob" component={RateJobScreen} />
         </Stack.Navigator>
     );
 }
 
-// ================= CUSTOM TAB BAR =================
-// Separate component so useEffect can sync FAB visibility without breaking render
-function CustomTabBar({ onFabVisibilityChange, ...props }) {
-    const { state } = props;
-    const currentRoute = state.routes[state.index];
-    const routeName = getFocusedRouteNameFromRoute(currentRoute) ?? currentRoute.name;
-
-    useEffect(() => {
-        const hide = routeName === 'Messaging' || routeName === 'AIChatbot' || routeName === 'Pickup' || routeName === 'Dropoff';
-        onFabVisibilityChange(hide);
-    }, [routeName]);
-
-    return <BottomTabBar {...props} />;
-}
-
 // ================= USER STACK =================
 export default function UserStack() {
-    const navigation = useNavigation();
-    const [hideFAB, setHideFAB] = useState(false);
-
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <Tab.Navigator
-                tabBar={(props) => (
-                    <CustomTabBar {...props} onFabVisibilityChange={setHideFAB} />
-                )}
                 screenOptions={{
                     headerShown: false,
                     tabBarShowLabel: true,
@@ -245,7 +131,7 @@ export default function UserStack() {
                     })}
                 />
 
-                {/* MESSAGES TAB */}
+                {/* MESSAGES */}
                 <Tab.Screen
                     name="Messages"
                     component={ChatStack}
@@ -267,13 +153,6 @@ export default function UserStack() {
                     }}
                 />
             </Tab.Navigator>
-
-            {/* FAB outside Tab.Navigator — floats above everything */}
-            {!hideFAB && (
-                <DraggableAIFab
-                    onPress={() => navigation.navigate('HomeTab', { screen: 'AIChatbot' })}
-                />
-            )}
         </View>
     );
 }
@@ -323,30 +202,5 @@ const styles = StyleSheet.create({
         backgroundColor: C.primary,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    fab: {
-        width: 56,
-        height: 56,
-        borderRadius: 20,
-        backgroundColor: C.primaryStandard,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 8,
-        shadowColor: C.primaryStandard,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-    },
-    fabGradient: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    fabContainer: {
-        position: 'absolute',
-        zIndex: 999,
-        elevation: 20,
     },
 });

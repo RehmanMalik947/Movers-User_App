@@ -7,7 +7,6 @@ import Icon2 from 'react-native-vector-icons/FontAwesome5';
 
 import HomeScreen from '../HomeScreen';
 import TrackingScreen from '../TrackingScreen';
-import ChatScreen from '../chatScreen';
 import ProfileScreen from '../ProfileScreen';
 
 import { useMode } from '../../context/ModeContext';
@@ -147,23 +146,6 @@ export default function BottomTabs() {
           ),
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
           tabBarLabel: () => null,
-        }}
-      />
-
-      <Tab.Screen
-        name="Chats"
-        component={ChatScreen}
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Icon 
-                name={focused ? 'chatbubble' : 'chatbubble-outline'} 
-                size={22} 
-                color={color} 
-              />
-            </View>
-          ),
         }}
       />
 

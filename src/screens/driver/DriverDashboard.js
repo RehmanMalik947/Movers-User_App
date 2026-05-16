@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { mockApi } from '../../api/mockService';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { chatApi, driverApi } from '../../api/apiService';
+import { driverApi, chatApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
@@ -40,10 +40,12 @@ export default function DriverDashboard() {
             const res = await driverApi.getProfile();
             if (res.success) {
                 setIsOnline(res.driver.is_online);
+                return res.driver.is_online;
             }
         } catch (error) {
             console.error('Fetch status error:', error);
         }
+        return false;
     };
 
     const toggleStatus = async () => {
@@ -67,11 +69,6 @@ export default function DriverDashboard() {
     };
 
     const loadJobs = async () => {
-        if (!isOnline) {
-            setJobs([]);
-            setLoading(false);
-            return;
-        }
         setLoading(true);
         try {
             const data = await mockApi.getDriverJobs(user.id);
@@ -84,32 +81,42 @@ export default function DriverDashboard() {
     };
 
     const handleContactOwner = async () => {
-        if (!user.truckOwnerId) {
-            Alert.alert("Notice", "No truck owner assigned to your profile.");
-            return;
+      if (!user.truckOwnerId) {
+        Alert.alert('Notice', 'No truck owner assigned to your profile.');
+        return;
+      }
+      try {
+        const res = await chatApi.startConversation(user.id, user.truckOwnerId, 'driver-owner');
+        if (res.success) {
+          navigation.navigate('Messages', {
+            screen: 'Chat',
+            params: {
+              conversationId: res.data.id,
+              otherId: user.truckOwnerId,
+              otherName: user.truckOwnerName || 'Truck Owner',
+            },
+          });
         }
-        try {
-            const chatRes = await chatApi.startChat(user.id, user.truckOwnerId, 'driver-owner');
-            if (chatRes.success) {
-                navigation.navigate('Messaging', {
-                    chatId: chatRes.data.id,
-                    otherId: user.truckOwnerId,
-                    otherName: user.truckOwnerName || 'Truck Owner',
-                    myId: user.id,
-                    myName: user.name,
-                    myRole: 'Driver'
-                });
-            }
-        } catch (error) {
-            Alert.alert("Error", "Could not start chat");
-        }
+      } catch (err) {
+        Alert.alert('Error', 'Could not start chat');
+      }
     };
 
     useFocusEffect(
         useCallback(() => {
-            fetchStatus();
-            loadJobs();
-        }, [isOnline])
+            let mounted = true;
+            (async () => {
+                const online = await fetchStatus();
+                if (!mounted) return;
+                if (online) {
+                    loadJobs();
+                } else {
+                    setJobs([]);
+                    setLoading(false);
+                }
+            })();
+            return () => { mounted = false; };
+        }, [])
     );
 
     const renderJobItem = ({ item }) => {
@@ -158,9 +165,9 @@ export default function DriverDashboard() {
         <SafeAreaView style={styles.safe}>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.welcomeText}>Hello, Captain {user?.name} 👋</Text>
-                        <Text style={styles.subText}>Ready for your next move?</Text>
+                    <View style={styles.greetingSection}>
+                        <Text style={styles.welcomeText} numberOfLines={1}>Hello, Captain {user?.name} 👋</Text>
+                        <Text style={styles.subText} numberOfLines={1}>Ready for your next move?</Text>
                     </View>
                     
                     <View style={styles.headerActions}>
@@ -183,21 +190,11 @@ export default function DriverDashboard() {
                                     </Text>
                                     <Icon 
                                         name={isOnline ? "chevron-down" : "chevron-forward"} 
-                                        size={14} 
+                                        size={12} 
                                         color={isOnline ? C.white : C.textMuted} 
-                                        style={{ marginLeft: 4 }}
                                     />
                                 </>
                             )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.7}>
-                            <Icon name="wallet" size={24} color={C.primary} />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.headerBtn} onPress={handleContactOwner} activeOpacity={0.7}>
-                            <Icon name="chatbubble-ellipses" size={24} color={C.primary} />
-                            <View style={styles.chatBadge} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -245,32 +242,36 @@ const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: C.bg },
     container: { flex: 1, paddingHorizontal: 20 },
     header: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginTop: 12,
-        marginBottom: 24 
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 16,
+        marginBottom: 24,
     },
-    welcomeText: { fontSize: 22, fontWeight: '800', color: C.textHead, letterSpacing: -0.5 },
-    subText: { fontSize: 14, color: C.textMuted, marginTop: 2 },
+    greetingSection: {
+        flex: 1,
+        marginRight: 10,
+    },
+    welcomeText: { fontSize: 20, fontWeight: '900', color: C.textHead, letterSpacing: -0.5 },
+    subText: { fontSize: 12, color: C.textMuted, marginTop: 2 },
     headerActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12
+        gap: 8
     },
     statusPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 25,
-        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 15,
+        gap: 6,
         borderWidth: 1.5,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     pillOnline: {
         backgroundColor: C.primary,
@@ -288,30 +289,19 @@ const styles = StyleSheet.create({
         borderColor: C.white,
     },
     statusPillText: {
-        fontSize: 12,
-        fontWeight: '800',
-        letterSpacing: 0.5,
+        fontSize: 11,
+        fontWeight: '900',
+        letterSpacing: 0.2,
     },
     textWhite: { color: C.white },
     textMuted: { color: C.textMuted },
     headerBtn: { 
-        width: 48, 
-        height: 48, 
-        borderRadius: 16, 
+        width: 40, 
+        height: 40, 
+        borderRadius: 12, 
         backgroundColor: C.primaryLight, 
         justifyContent: 'center', 
         alignItems: 'center',
-    },
-    chatBadge: {
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: C.success,
-        borderWidth: 2,
-        borderColor: C.surface,
     },
     statsRow: {
         flexDirection: 'row',

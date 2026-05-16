@@ -90,22 +90,19 @@ export const ownerApi = {
     assignDriver: (jobId, driverId) => apiService.patch(`owner/jobs/${jobId}/assign-driver`, { driver_id: driverId }),
 };
 
-export const chatApi = {
-    askAi: (message, history = []) => apiService.post('chat/ask', { message, history }),
-    startChat: (participant1Id, participant2Id, chatType) => apiService.post('chat/start', { participant1Id, participant2Id, chatType }),
-    getMyChats: (myId) => apiService.get(`chat/my-chats/${myId}`),
-    getHistory: (chatId) => apiService.get(`chat/history/${chatId}`),
-    uploadVoice: (formData) => apiService.post('chat/upload-voice', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
-    getAvailablePartners: (myId, role) => apiService.get(`chat/available-partners/${myId}/${role}`),
-};
-
 export const reviewApi = {
     create: (data) => apiService.post('reviews', data),
     getJobReviews: (jobId) => apiService.get(`reviews/job/${jobId}`),
     getUserReviews: (userId, role) => apiService.get(`reviews/user/${userId}/${role}`),
     getDriverReviews: (driverId) => apiService.get(`reviews/driver/${driverId}`),
+};
+
+export const chatApi = {
+  getConversations: (userId, role) => apiService.get(`chat/conversations/${userId}/${role}`),
+  getMessages: (conversationId) => apiService.get(`chat/conversation/${conversationId}/messages`),
+  startConversation: (participant1Id, participant2Id, type) => apiService.post('chat/conversation/start', { participant1Id, participant2Id, type }),
+  markAsRead: (conversationId, readerId) => apiService.patch(`chat/conversation/${conversationId}/read`, { readerId }),
+  getContacts: (userId, role) => apiService.get(`chat/contacts/${userId}/${role}`),
 };
 
 export const driverApi = {
