@@ -4,6 +4,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { setDropoffLocation } from '../redux/slices/locationSlice';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 
@@ -31,6 +32,7 @@ const C = {
 export default function DropoffLocationScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [region, setRegion] = useState({
     latitude: 31.5204,
     longitude: 74.3587,
@@ -172,7 +174,7 @@ export default function DropoffLocationScreen() {
         )}
       </View>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 24 }]}>
         <View style={styles.footerHandle} />
         <View style={styles.addressRow}>
           <View style={styles.addressIconBg}>

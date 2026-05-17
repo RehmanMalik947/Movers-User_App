@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { mockApi } from '../../api/mockService';
-import { chatApi } from '../../api/apiService';
+import { chatApi, jobApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
@@ -43,8 +42,12 @@ export default function ActiveJobScreen() {
 
     const loadJob = async () => {
         try {
-            const jobData = await mockApi.getJob(jobId);
-            setJob(jobData);
+            const res = await jobApi.getOne(jobId);
+            if (res.success) {
+                setJob(res.data);
+            } else {
+                Alert.alert("Error", "Could not load job");
+            }
         } catch (error) {
             Alert.alert("Error", "Could not load job");
         } finally {
@@ -55,9 +58,13 @@ export default function ActiveJobScreen() {
     const updateStatus = async (newStatus) => {
         setUpdating(true);
         try {
-            await mockApi.updateJobStatus(jobId, newStatus);
-            setJob(prev => ({ ...prev, status: newStatus }));
-            Alert.alert("Success", `Status updated to ${newStatus}`);
+            const res = await jobApi.update(jobId, { status: newStatus.toLowerCase() });
+            if (res.success) {
+                setJob(prev => ({ ...prev, status: newStatus.toLowerCase() }));
+                Alert.alert("Success", `Status updated to ${newStatus}`);
+            } else {
+                Alert.alert("Error", res.error || "Could not update status");
+            }
         } catch (error) {
             Alert.alert("Error", error.message);
         } finally {
@@ -105,15 +112,16 @@ export default function ActiveJobScreen() {
     );
 
     const getNextAction = () => {
-        switch (job.status) {
-            case 'ASSIGNED': return { label: 'Start Job', next: 'IN_PROGRESS', icon: 'play' };
-            case 'IN_PROGRESS': return { label: 'Complete Job', next: 'COMPLETED', icon: 'checkmark-circle' };
+        const currentStatus = job.status?.toLowerCase();
+        switch (currentStatus) {
+            case 'assigned': return { label: 'Start Job', next: 'IN_PROGRESS', icon: 'play' };
+            case 'in_progress': return { label: 'Complete Job', next: 'COMPLETED', icon: 'checkmark-circle' };
             default: return null;
         }
     };
 
     const action = getNextAction();
-    const isCompleted = job.status === 'COMPLETED';
+    const isCompleted = job.status?.toLowerCase() === 'completed';
 
     return (
         <SafeAreaView style={styles.safe}>
@@ -128,7 +136,7 @@ export default function ActiveJobScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
                 <View style={styles.statusSection}>
                     <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>{job.status}</Text>
+                        <Text style={styles.statusText}>{job.status ? job.status.toUpperCase() : 'UNKNOWN'}</Text>
                     </View>
                     <Text style={styles.title}>{job.title}</Text>
                 </View>
@@ -155,7 +163,7 @@ export default function ActiveJobScreen() {
                         </View>
                         <View style={styles.routeInfo}>
                             <Text style={styles.label}>Pickup</Text>
-                            <Text style={styles.val}>{job.pickup}</Text>
+                            <Text style={styles.val}>{job.pickupLocation || job.pickup}</Text>
                         </View>
                     </View>
                     
@@ -167,7 +175,7 @@ export default function ActiveJobScreen() {
                         </View>
                         <View style={styles.routeInfo}>
                             <Text style={styles.label}>Dropoff</Text>
-                            <Text style={styles.val}>{job.dropoff}</Text>
+                            <Text style={styles.val}>{job.deliveryLocation || job.dropoff}</Text>
                         </View>
                     </View>
                 </View>

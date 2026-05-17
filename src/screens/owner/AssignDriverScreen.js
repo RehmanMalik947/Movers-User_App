@@ -66,7 +66,7 @@ export default function AssignDriverScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safe} edges={['bottom']}>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Icon name="arrow-back" size={24} color={C.textHead} />

@@ -137,6 +137,7 @@ export default function LoginScreen() {
     }
     try {
       await login(email, password);
+      console.log(login);
     } catch (error) {
       Alert.alert(
         'Login Failed',

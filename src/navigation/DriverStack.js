@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DriverDashboard from '../screens/driver/DriverDashboard';
 import ActiveJobScreen from '../screens/driver/ActiveJobScreen';
@@ -34,13 +35,21 @@ function DriverHomeStack() {
 }
 
 export default function DriverStack() {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarActiveTintColor: C.primaryStandard,
                 tabBarInactiveTintColor: C.textMuted,
-                tabBarStyle: styles.tabBar,
+                tabBarStyle: [
+                    styles.tabBar,
+                    {
+                        height: Platform.OS === 'ios' ? (insets.bottom > 0 ? 64 + insets.bottom : 70) : (60 + insets.bottom),
+                        paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+                    }
+                ],
                 tabBarLabelStyle: styles.tabLabel,
             }}
         >
@@ -86,11 +95,9 @@ export default function DriverStack() {
 
 const styles = StyleSheet.create({
     tabBar: {
-        height: 70,
         backgroundColor: C.surface,
         borderTopWidth: 1,
         borderTopColor: C.border,
-        paddingBottom: 12,
         paddingTop: 10,
     },
     tabLabel: {

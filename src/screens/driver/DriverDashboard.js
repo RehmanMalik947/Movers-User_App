@@ -2,9 +2,8 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { mockApi } from '../../api/mockService';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { driverApi, chatApi } from '../../api/apiService';
+import { driverApi, chatApi, jobApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
@@ -71,8 +70,10 @@ export default function DriverDashboard() {
     const loadJobs = async () => {
         setLoading(true);
         try {
-            const data = await mockApi.getDriverJobs(user.id);
-            setJobs(data);
+            const res = await jobApi.getDriverJobs(user.id);
+            if (res.success) {
+                setJobs(res.data);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -120,7 +121,9 @@ export default function DriverDashboard() {
     );
 
     const renderJobItem = ({ item }) => {
-        const isActive = item.status !== 'COMPLETED';
+        const isActive = item.status?.toLowerCase() !== 'completed';
+        const displayStatus = item.status ? item.status.toUpperCase() : 'UNKNOWN';
+        const date = item.requestedDate || item.date || new Date().toISOString();
         return (
             <TouchableOpacity
                 style={[styles.jobCard, isActive && styles.activeCard]}
@@ -131,10 +134,10 @@ export default function DriverDashboard() {
                 <View style={styles.cardHeader}>
                     <View style={[styles.statusBadge, { backgroundColor: isActive ? C.primaryLight : C.border }]}>
                         <Text style={[styles.statusText, { color: isActive ? C.primaryStandard : C.textMuted }]}>
-                            {item.status}
+                            {displayStatus}
                         </Text>
                     </View>
-                    <Text style={styles.jobDate}>{new Date(item.date).toDateString()}</Text>
+                    <Text style={styles.jobDate}>{new Date(date).toDateString()}</Text>
                 </View>
 
                 <Text style={styles.jobTitle}>{item.title}</Text>
@@ -142,12 +145,12 @@ export default function DriverDashboard() {
                 <View style={styles.routeContainer}>
                     <View style={styles.routeItem}>
                         <View style={[styles.dot, { backgroundColor: C.success }]} />
-                        <Text style={styles.routeText} numberOfLines={1}>{item.pickup}</Text>
+                        <Text style={styles.routeText} numberOfLines={1}>{item.pickupLocation || item.pickup}</Text>
                     </View>
                     <View style={styles.routeLine} />
                     <View style={styles.routeItem}>
                         <View style={[styles.dot, { backgroundColor: C.error }]} />
-                        <Text style={styles.routeText} numberOfLines={1}>{item.dropoff}</Text>
+                        <Text style={styles.routeText} numberOfLines={1}>{item.deliveryLocation || item.dropoff}</Text>
                     </View>
                 </View>
 
@@ -201,12 +204,12 @@ export default function DriverDashboard() {
 
                 <View style={styles.statsRow}>
                     <View style={styles.statBox}>
-                        <Text style={styles.statVal}>{jobs.filter(j => j.status !== 'COMPLETED').length}</Text>
+                        <Text style={styles.statVal}>{jobs.filter(j => j.status?.toLowerCase() !== 'completed').length}</Text>
                         <Text style={styles.statLab}>Active Jobs</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statBox}>
-                        <Text style={styles.statVal}>{jobs.filter(j => j.status === 'COMPLETED').length}</Text>
+                        <Text style={styles.statVal}>{jobs.filter(j => j.status?.toLowerCase() === 'completed').length}</Text>
                         <Text style={styles.statLab}>Completed</Text>
                     </View>
                 </View>

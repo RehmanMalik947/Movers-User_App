@@ -52,8 +52,8 @@ export default function App() {
       <AuthProvider>
         <SafeAreaProvider>
           <StatusBar
-            barStyle={isDark ? 'light-content' : 'dark-content'}
-            translucent={false}
+            barStyle="dark-content"
+            translucent={true}
             backgroundColor="transparent"
           />
           <NavigationContainer>

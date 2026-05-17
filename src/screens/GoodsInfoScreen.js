@@ -2,14 +2,17 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setGoods } from '../redux/slices/locationSlice';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
-  SafeAreaView,
+  Platform,
+  Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
@@ -54,7 +57,7 @@ export default function GoodsInfoScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
         <Text style={styles.sectionTitle}>What are you moving?</Text>
         

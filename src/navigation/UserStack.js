@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Screens
@@ -65,6 +66,8 @@ function HomeStack() {
 
 // ================= USER STACK =================
 export default function UserStack() {
+    const insets = useSafeAreaInsets();
+
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
             <Tab.Navigator
@@ -74,7 +77,13 @@ export default function UserStack() {
                     tabBarLabelStyle: styles.tabLabel,
                     tabBarActiveTintColor: C.primaryStandard,
                     tabBarInactiveTintColor: C.textMuted,
-                    tabBarStyle: styles.tabBar,
+                    tabBarStyle: [
+                        styles.tabBar,
+                        {
+                            height: Platform.OS === 'ios' ? (insets.bottom > 0 ? 64 + insets.bottom : 70) : (60 + insets.bottom),
+                            paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+                        }
+                    ],
                 }}
             >
                 {/* HOME TAB */}
@@ -90,7 +99,13 @@ export default function UserStack() {
                             tabBarIcon: ({ color, focused }) => (
                                 <Icon name={focused ? "home" : "home-outline"} size={22} color={color} />
                             ),
-                            tabBarStyle: showTabBar ? styles.tabBar : { display: 'none' },
+                            tabBarStyle: showTabBar ? [
+                                styles.tabBar,
+                                {
+                                    height: Platform.OS === 'ios' ? (insets.bottom > 0 ? 64 + insets.bottom : 70) : (60 + insets.bottom),
+                                    paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+                                }
+                            ] : { display: 'none' },
                         };
                     }}
                 />
@@ -160,11 +175,9 @@ export default function UserStack() {
 // ================= STYLES =================
 const styles = StyleSheet.create({
     tabBar: {
-        height: Platform.OS === 'ios' ? 88 : 70,
         backgroundColor: C.surface,
         borderTopWidth: 1,
         borderTopColor: C.border,
-        paddingBottom: Platform.OS === 'ios' ? 25 : 12,
         paddingTop: 10,
         elevation: 20,
         shadowColor: '#0F172A',

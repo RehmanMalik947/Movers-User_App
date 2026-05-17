@@ -125,7 +125,7 @@ export default function ProfileScreen({ navigation }) {
   ];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 24,
   },
 
   // Header

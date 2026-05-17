@@ -57,6 +57,7 @@ export const authApi = {
 export const jobApi = {
     getAll: (params) => apiService.get('jobs', { params }),
     getMyJobs: (userId) => apiService.get('jobs', { params: { userId } }),
+    getDriverJobs: (driverId) => apiService.get('jobs', { params: { driverId } }),
     getOne: (id) => apiService.get(`jobs/${id}`),
     getCategories: () => apiService.get('jobs/categories'),
     getBids: (jobId) => apiService.get(`jobs/${jobId}/bids`),

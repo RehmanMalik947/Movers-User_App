@@ -71,6 +71,21 @@ class SocketService {
     return false;
   }
 
+  deleteMessage(id, conversationId) {
+    if (this.socket?.connected) {
+      this.socket.emit('delete_message', { id, conversationId });
+      return true;
+    }
+    return false;
+  }
+
+  onMessageDeleted(callback) {
+    if (this.socket) {
+      this.socket.off('message_deleted');
+      this.socket.on('message_deleted', callback);
+    }
+  }
+
   onReceiveMessage(callback) {
     if (this.socket) {
       this.socket.off('receive_message');

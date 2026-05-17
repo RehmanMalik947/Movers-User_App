@@ -116,7 +116,7 @@ export default function JobDetailsScreen() {
     if (!job) return <View style={styles.center}><Text style={styles.errorText}>Job not found</Text></View>;
 
     return (
-        <SafeAreaView style={styles.safe} edges={['bottom']}>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Icon name="arrow-back" size={24} color={C.textHead} />
@@ -145,17 +145,28 @@ export default function JobDetailsScreen() {
                     </View>
                 </View>
 
-                {/* Chat with Driver */}
+                {/* Track and Chat options */}
                 {(job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS') && (
-                  <TouchableOpacity
-                    style={styles.chatButton}
-                    onPress={handleChatWithDriver}
-                    disabled={actionLoading}
-                    activeOpacity={0.8}
-                  >
-                    <Icon name="chatbubbles" size={20} color={C.white} />
-                    <Text style={styles.chatButtonText}>Chat with Driver</Text>
-                  </TouchableOpacity>
+                  <View style={{ marginBottom: 20, gap: 12 }}>
+                    <TouchableOpacity
+                      style={styles.trackButton}
+                      onPress={() => navigation.navigate('Tracking', { jobId: job.id })}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="map" size={20} color={C.white} />
+                      <Text style={styles.trackButtonText}>Track Shipment</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.chatButton}
+                      onPress={handleChatWithDriver}
+                      disabled={actionLoading}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="chatbubbles" size={20} color={C.white} />
+                      <Text style={styles.chatButtonText}>Chat with Driver</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
 
                 {/* Rate Driver - only for completed jobs */}
@@ -318,6 +329,21 @@ const styles = StyleSheet.create({
     acceptedText: { color: C.white, fontWeight: '800', fontSize: 11 },
     bidStatusText: { color: C.textMuted, fontSize: 13, fontWeight: '600' },
 
+    trackButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.primaryStandard,
+      padding: 16,
+      borderRadius: 20,
+      gap: 10,
+      elevation: 4,
+      shadowColor: C.primaryStandard,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    },
+    trackButtonText: { color: C.white, fontWeight: '800', fontSize: 16 },
     chatButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -325,7 +351,6 @@ const styles = StyleSheet.create({
       backgroundColor: C.success,
       padding: 16,
       borderRadius: 20,
-      marginBottom: 20,
       gap: 10,
       elevation: 4,
       shadowColor: C.success,

@@ -93,7 +93,7 @@ export default function ChatListScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Messages</Text>
         <TouchableOpacity onPress={() => navigation.navigate('NewChat')} activeOpacity={0.7}>

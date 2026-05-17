@@ -1,16 +1,22 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   Animated,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../context/AuthContext';
+import { jobApi, chatApi } from '../api/apiService';
 
 const { width } = Dimensions.get('window');
 
@@ -35,44 +41,93 @@ const C = {
   info: '#3B82F6',
 };
 
-const STATUS_STEPS = [
-  {
-    label: 'Order Placed',
-    completed: true,
-    date: 'Today, 10:30 AM',
-    icon: 'cart-outline',
-  },
-  {
-    label: 'Picked Up',
-    completed: true,
-    date: 'Today, 12:15 PM',
-    icon: 'cube-outline',
-  },
-  {
-    label: 'In Transit',
-    completed: true,
-    date: 'Today, 1:45 PM',
-    icon: 'car-outline',
-  },
-  {
-    label: 'Out for Delivery',
-    completed: false,
-    date: 'Est. Today, 4:30 PM',
-    icon: 'location-outline',
-  },
-  {
-    label: 'Delivered',
-    completed: false,
-    date: 'Est. Today, 5:00 PM',
-    icon: 'checkmark-circle-outline',
-  },
+const getCoordsFromAddress = (address, type) => {
+  const normalized = (address || '').toLowerCase();
+  
+  if (type === 'pickup') {
+    if (normalized.includes('gulberg') || normalized.includes('mall 1')) {
+      return { latitude: 31.5126, longitude: 74.3524 };
+    }
+    if (normalized.includes('cantt') || normalized.includes('cantonment')) {
+      return { latitude: 31.5034, longitude: 74.3986 };
+    }
+    if (normalized.includes('dha') || normalized.includes('defence')) {
+      return { latitude: 31.4805, longitude: 74.4690 };
+    }
+    // Default fallback pickup
+    return { latitude: 31.5204, longitude: 74.3587 };
+  } else {
+    // Dropoff
+    if (normalized.includes('johar town') || normalized.includes('johar')) {
+      return { latitude: 31.4697, longitude: 74.2728 };
+    }
+    if (normalized.includes('iqbal town') || normalized.includes('allama iqbal')) {
+      return { latitude: 31.5118, longitude: 74.2965 };
+    }
+    if (normalized.includes('dha') || normalized.includes('defence')) {
+      return { latitude: 31.4805, longitude: 74.4690 };
+    }
+    // Default fallback dropoff (slightly shifted from pickup to show a route)
+    return { latitude: 31.4800, longitude: 74.3200 };
+  }
+};
+
+const getStatusSteps = (status, date) => {
+  const formattedDate = date ? new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pending';
+  const steps = [
+    {
+      label: 'Order Placed',
+      completed: true,
+      date: formattedDate,
+      icon: 'cart-outline',
+    },
+    {
+      label: 'Driver Assigned',
+      completed: ['assigned', 'in-progress', 'completed'].includes(status),
+      date: ['assigned', 'in-progress', 'completed'].includes(status) ? 'Completed' : 'Pending',
+      icon: 'person-outline',
+    },
+    {
+      label: 'In Transit',
+      completed: ['in-progress', 'completed'].includes(status),
+      date: ['in-progress', 'completed'].includes(status) ? 'In Transit' : 'Pending',
+      icon: 'car-outline',
+    },
+    {
+      label: 'Delivered',
+      completed: status === 'completed',
+      date: status === 'completed' ? 'Delivered' : 'Pending',
+      icon: 'checkmark-circle-outline',
+    },
+  ];
+  return steps;
+};
+
+const mapStyle = [
+  { elementType: 'geometry', stylers: [{ color: '#f8fafc' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#e2e8f0' }] },
 ];
 
-export default function TrackOrderScreen({ navigation }) {
+export default function TrackOrderScreen() {
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { user } = useAuth();
+  const jobId = route.params?.jobId;
+
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [statusSteps, setStatusStepsList] = useState([]);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
-  useEffect(() => {
+  const startAnimations = () => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(20);
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -86,20 +141,145 @@ export default function TrackOrderScreen({ navigation }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
-
-  const getCurrentStepIndex = () => {
-    for (let i = 0; i < STATUS_STEPS.length; i++) {
-      if (!STATUS_STEPS[i].completed) return i;
-    }
-    return STATUS_STEPS.length;
   };
 
-  const currentStep = getCurrentStepIndex();
-  const progressPercentage = (currentStep / STATUS_STEPS.length) * 100;
+  const fetchJobDetails = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    try {
+      if (jobId) {
+        const res = await jobApi.getOne(jobId);
+        const fetchedJob = res?.data ?? res;
+        if (fetchedJob) {
+          setJob(fetchedJob);
+          setStatusStepsList(getStatusSteps(fetchedJob.status?.toLowerCase(), fetchedJob.createdAt));
+        }
+      } else {
+        // Find latest active job from my jobs
+        const res = await jobApi.getMyJobs(user.id);
+        const list = Array.isArray(res) ? res : (res?.data ?? []);
+        const activeJob = list.find(j => ['assigned', 'in-progress'].includes(j.status?.toLowerCase())) || list[0];
+        if (activeJob) {
+          setJob(activeJob);
+          setStatusStepsList(getStatusSteps(activeJob.status?.toLowerCase(), activeJob.createdAt));
+        } else {
+          setJob(null);
+        }
+      }
+    } catch (err) {
+      console.error('Fetch job tracking error:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [jobId, user]);
+
+  useEffect(() => {
+    fetchJobDetails();
+    startAnimations();
+  }, [fetchJobDetails]);
+
+  // Polling every 5 seconds for status updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchJobDetails(true);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [fetchJobDetails]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchJobDetails();
+  };
+
+  const handleChatWithDriver = async () => {
+    if (!job || !job.driverId) {
+      Alert.alert('Notice', 'Driver is not assigned to this shipment yet.');
+      return;
+    }
+    try {
+      const res = await chatApi.startConversation(user.id, job.driverId, 'user-driver');
+      if (res.success) {
+        navigation.navigate('Messages', {
+          screen: 'Chat',
+          params: {
+            conversationId: res.data.id,
+            otherId: job.driverId,
+            otherName: job.driverName || 'Driver',
+          },
+        });
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Could not start chat with driver');
+    }
+  };
+
+  const handleCallDriver = () => {
+    if (!job || !job.driverId) {
+      Alert.alert('Notice', 'Driver is not assigned to this shipment yet.');
+      return;
+    }
+    Alert.alert(
+      'Contact Driver',
+      `Driver: ${job.driverName || 'Driver'}\nPhone: +92 300 1234567`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Chat Now', onPress: handleChatWithDriver },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={C.primaryStandard} />
+          <Text style={styles.loadingText}>Fetching shipment live status...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!job) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.center}>
+          <Icon name="cube-outline" size={60} color={C.border} />
+          <Text style={styles.noActiveTitle}>No Active Shipments</Text>
+          <Text style={styles.noActiveSub}>You don't have any shipments currently in progress to track.</Text>
+          <TouchableOpacity style={styles.reloadBtn} onPress={handleRefresh}>
+            <Text style={styles.reloadBtnText}>Refresh</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Calculate coordinates
+  const pickupCoords = getCoordsFromAddress(job.pickupLocation || job.pickup, 'pickup');
+  const dropoffCoords = getCoordsFromAddress(job.deliveryLocation || job.dropoff, 'dropoff');
+  const jobStatus = job.status?.toLowerCase();
+
+  let driverCoords = null;
+  if (['assigned', 'in-progress', 'completed'].includes(jobStatus)) {
+    if (jobStatus === 'assigned') {
+      driverCoords = pickupCoords;
+    } else if (jobStatus === 'completed') {
+      driverCoords = dropoffCoords;
+    } else {
+      // Halfway between pickup and dropoff
+      driverCoords = {
+        latitude: (pickupCoords.latitude + dropoffCoords.latitude) / 2,
+        longitude: (pickupCoords.longitude + dropoffCoords.longitude) / 2,
+      };
+    }
+  }
+
+  const currentStepIdx = statusSteps.findIndex(s => !s.completed);
+  const currentStep = currentStepIdx === -1 ? statusSteps.length : currentStepIdx;
+  const progressPercentage = (currentStep / statusSteps.length) * 100;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -119,7 +299,9 @@ export default function TrackOrderScreen({ navigation }) {
             <Icon name="arrow-back" size={22} color={C.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Track Order</Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity onPress={handleRefresh} style={styles.backButton}>
+            <Icon name="refresh" size={22} color={C.white} />
+          </TouchableOpacity>
         </Animated.View>
 
         {/* Progress Bar */}
@@ -144,9 +326,67 @@ export default function TrackOrderScreen({ navigation }) {
             />
           </View>
           <Text style={styles.progressSubtext}>
-            {STATUS_STEPS[currentStep]?.label || 'Order Complete'} • Estimated
-            delivery by 5:00 PM
+            {job.status?.toUpperCase()?.replace('-', ' ')} • Goods: {job.goodsType || 'Goods'}
           </Text>
+        </Animated.View>
+
+        {/* Live Location Map */}
+        <Animated.View
+          style={[
+            styles.mapSection,
+            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Live Route Map</Text>
+          </View>
+
+          <View style={styles.mapPlaceholder}>
+            <MapView
+              style={{ flex: 1, width: '100%', height: 200 }}
+              provider={PROVIDER_GOOGLE}
+              region={{
+                latitude: (pickupCoords.latitude + dropoffCoords.latitude) / 2,
+                longitude: (pickupCoords.longitude + dropoffCoords.longitude) / 2,
+                latitudeDelta: Math.abs(pickupCoords.latitude - dropoffCoords.latitude) * 2 || 0.08,
+                longitudeDelta: Math.abs(pickupCoords.longitude - dropoffCoords.longitude) * 2 || 0.08,
+              }}
+              customMapStyle={mapStyle}
+              scrollEnabled={true}
+              zoomEnabled={true}
+            >
+              {/* Pickup Marker */}
+              <Marker coordinate={pickupCoords} title="Pickup" description={job.pickupLocation || job.pickup}>
+                <View style={styles.customMapMarkerPickup}>
+                  <Icon name="location" size={24} color={C.success} />
+                </View>
+              </Marker>
+
+              {/* Dropoff Marker */}
+              <Marker coordinate={dropoffCoords} title="Delivery" description={job.deliveryLocation || job.dropoff}>
+                <View style={styles.customMapMarkerDropoff}>
+                  <Icon name="flag" size={24} color={C.error} />
+                </View>
+              </Marker>
+
+              {/* Driver Marker */}
+              {driverCoords && (
+                <Marker coordinate={driverCoords} title="Driver Position" description={job.driverName || 'Captain'}>
+                  <View style={styles.customMapMarkerDriver}>
+                    <Icon name="car" size={26} color={C.primary} />
+                  </View>
+                </Marker>
+              )}
+
+              {/* Polyline connecting them */}
+              <Polyline
+                coordinates={[pickupCoords, dropoffCoords]}
+                strokeColor={C.primaryStandard}
+                strokeWidth={3}
+                lineDashPattern={[5, 5]}
+              />
+            </MapView>
+          </View>
         </Animated.View>
 
         {/* Order Info Card */}
@@ -164,7 +404,7 @@ export default function TrackOrderScreen({ navigation }) {
                 color={C.primaryStandard}
               />
             </View>
-            <Text style={styles.orderLabel}>Order #MOV-12345</Text>
+            <Text style={styles.orderLabel} numberOfLines={1}>Order #{job.id || 'MOV-12345'}</Text>
           </View>
 
           <View style={styles.orderDetails}>
@@ -178,7 +418,7 @@ export default function TrackOrderScreen({ navigation }) {
               </View>
               <View style={styles.detailText}>
                 <Text style={styles.detailLabel}>Pickup Location</Text>
-                <Text style={styles.detailValue}>Mall 1, Gulberg, Lahore</Text>
+                <Text style={styles.detailValue} numberOfLines={2}>{job.pickupLocation || job.pickup}</Text>
               </View>
             </View>
 
@@ -188,7 +428,7 @@ export default function TrackOrderScreen({ navigation }) {
               </View>
               <View style={styles.detailText}>
                 <Text style={styles.detailLabel}>Delivery Location</Text>
-                <Text style={styles.detailValue}>Johar Town, Lahore</Text>
+                <Text style={styles.detailValue} numberOfLines={2}>{job.deliveryLocation || job.dropoff}</Text>
               </View>
             </View>
 
@@ -199,9 +439,9 @@ export default function TrackOrderScreen({ navigation }) {
                 <Icon name="car-outline" size={14} color={C.primaryStandard} />
               </View>
               <View style={styles.detailText}>
-                <Text style={styles.detailLabel}>Vehicle</Text>
+                <Text style={styles.detailLabel}>Truck Category & Fare</Text>
                 <Text style={styles.detailValue}>
-                  Medium Truck • Capacity 3 Tons
+                  {job.truckType || job.vehicleType || 'Standard Truck'} • Rs. {job.fare ? job.fare.toLocaleString() : 'N/A'}
                 </Text>
               </View>
             </View>
@@ -211,8 +451,8 @@ export default function TrackOrderScreen({ navigation }) {
                 <Icon name="time-outline" size={14} color={C.primaryStandard} />
               </View>
               <View style={styles.detailText}>
-                <Text style={styles.detailLabel}>Estimated Delivery</Text>
-                <Text style={styles.detailValue}>Today, 5:00 PM</Text>
+                <Text style={styles.detailLabel}>Requested Date</Text>
+                <Text style={styles.detailValue}>{job.requestedDate ? new Date(job.requestedDate).toDateString() : 'N/A'}</Text>
               </View>
             </View>
           </View>
@@ -227,13 +467,10 @@ export default function TrackOrderScreen({ navigation }) {
         >
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Order Status</Text>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Text style={styles.viewAllText}>View Details</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.timeline}>
-            {STATUS_STEPS.map((step, idx) => (
+            {statusSteps.map((step, idx) => (
               <View key={step.label} style={styles.timelineRow}>
                 <View style={styles.timelineLeft}>
                   <View
@@ -241,8 +478,8 @@ export default function TrackOrderScreen({ navigation }) {
                       styles.timelineIcon,
                       step.completed && styles.timelineIconCompleted,
                       idx === currentStep &&
-                        !step.completed &&
-                        styles.timelineIconCurrent,
+                      !step.completed &&
+                      styles.timelineIconCurrent,
                     ]}
                   >
                     {step.completed ? (
@@ -253,7 +490,7 @@ export default function TrackOrderScreen({ navigation }) {
                       <View style={styles.emptyDot} />
                     )}
                   </View>
-                  {idx !== STATUS_STEPS.length - 1 && (
+                  {idx !== statusSteps.length - 1 && (
                     <View
                       style={[
                         styles.timelineLine,
@@ -268,8 +505,8 @@ export default function TrackOrderScreen({ navigation }) {
                       styles.timelineLabel,
                       step.completed && styles.timelineLabelCompleted,
                       idx === currentStep &&
-                        !step.completed &&
-                        styles.timelineLabelCurrent,
+                      !step.completed &&
+                      styles.timelineLabelCurrent,
                     ]}
                   >
                     {step.label}
@@ -281,33 +518,6 @@ export default function TrackOrderScreen({ navigation }) {
           </View>
         </Animated.View>
 
-        {/* Map Placeholder */}
-        <Animated.View
-          style={[
-            styles.mapSection,
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-          ]}
-        >
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Live Location</Text>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Text style={styles.viewAllText}>Refresh</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.mapPlaceholder}>
-            <View style={styles.mapOverlay}>
-              <View style={styles.mapIconBg}>
-                <Icon name="map-outline" size={32} color={C.primaryStandard} />
-              </View>
-              <Text style={styles.mapPlaceholderText}>Live Map View</Text>
-              <Text style={styles.mapSubtext}>
-                Driver location will appear here
-              </Text>
-            </View>
-          </View>
-        </Animated.View>
-
         {/* Contact Support Button */}
         <Animated.View
           style={[
@@ -315,16 +525,16 @@ export default function TrackOrderScreen({ navigation }) {
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
           ]}
         >
-          <TouchableOpacity style={styles.supportButton} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.supportButton} onPress={handleChatWithDriver} activeOpacity={0.8}>
             <Icon
               name="chatbubble-ellipses-outline"
               size={18}
               color={C.white}
             />
-            <Text style={styles.supportButtonText}>Contact Support</Text>
+            <Text style={styles.supportButtonText}>Chat with Driver</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.callButton} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.callButton} onPress={handleCallDriver} activeOpacity={0.8}>
             <Icon name="call-outline" size={18} color={C.primaryStandard} />
             <Text style={styles.callButtonText}>Call Driver</Text>
           </TouchableOpacity>
@@ -342,7 +552,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 80,
+    paddingBottom: 24,
   },
 
   // Header
@@ -684,5 +894,91 @@ const styles = StyleSheet.create({
   bottomPadding: {
     height: 20,
     bottom: 40,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: C.bg,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 15,
+    fontWeight: '600',
+    color: C.textBody,
+  },
+  noActiveTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.textHead,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noActiveSub: {
+    fontSize: 14,
+    color: C.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  reloadBtn: {
+    backgroundColor: C.primaryStandard,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    shadowColor: C.primaryStandard,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  reloadBtnText: {
+    color: C.white,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  customMapMarkerPickup: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.white,
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.success,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  customMapMarkerDropoff: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.white,
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.error,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  customMapMarkerDriver: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.white,
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: C.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });
