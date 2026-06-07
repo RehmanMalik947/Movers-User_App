@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image, Animated } from 'react-native';
+import React, { useCallback, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image, Animated, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { jobApi } from '../../api/apiService';
+import { getStatusColor, getStatusLabel, normalizeStatus } from '../../utils/jobStatus';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -31,6 +32,7 @@ export default function UserDashboard() {
     const navigation = useNavigation();
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [hasOpenJob, setHasOpenJob] = useState(false);
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -44,15 +46,29 @@ export default function UserDashboard() {
     const loadJobs = async () => {
         setLoading(true);
         try {
-            const data = await jobApi.getMyJobs(user.id);
+            const data = await jobApi.getMyActiveJobs(user.id);
             const list = Array.isArray(data) ? data : (data?.data ?? []);
             setJobs(list.map(mapJobToUI));
+            setHasOpenJob(list.length > 0);
         } catch (error) {
             console.error(error);
             setJobs([]);
+            setHasOpenJob(false);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCreateJob = () => {
+        if (hasOpenJob) {
+            Alert.alert(
+                'Active Job Exists',
+                'You already have an open shipment. Cancel it from job details before posting a new one.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+        navigation.navigate('CreateJob');
     };
 
     const mapJobToUI = (j) => ({
@@ -62,7 +78,8 @@ export default function UserDashboard() {
         dropoff: j.deliveryLocation || '',
         vehicleType: j.truckType || 'Shehzore',
         date: j.requestedDate || new Date().toISOString(),
-        status: (j.status || 'pending').toUpperCase().replace('-', '_'),
+        rawStatus: normalizeStatus(j.status),
+        status: getStatusLabel(j.status),
         bids: j.bids || [],
     });
 
@@ -73,19 +90,8 @@ export default function UserDashboard() {
     );
 
     const renderJobItem = ({ item }) => {
-        let statusColor = C.textMuted;
-        let badgeBg = C.divider;
-        
-        if (item.status === 'BIDDING' || item.status === 'PENDING') {
-            statusColor = C.warning;
-            badgeBg = C.warning + '15';
-        } else if (item.status === 'ACCEPTED' || item.status === 'COMPLETED') {
-            statusColor = C.success;
-            badgeBg = C.success + '15';
-        } else if (item.status === 'ASSIGNED' || item.status === 'IN_PROGRESS') {
-            statusColor = C.primaryStandard;
-            badgeBg = C.primaryLight;
-        }
+        const statusColor = getStatusColor(item.rawStatus);
+        const badgeBg = statusColor + '18';
 
         return (
             <TouchableOpacity
@@ -142,27 +148,40 @@ export default function UserDashboard() {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.actionCard}>
+                <View style={[styles.actionCard, hasOpenJob && styles.actionCardMuted]}>
                     <View style={styles.actionContent}>
-                        <Text style={styles.actionTitle}>Need to move?</Text>
-                        <Text style={styles.actionSub}>Post a job and get real-time bids from vetted drivers.</Text>
+                        <Text style={styles.actionTitle}>{hasOpenJob ? 'Shipment in progress' : 'Need to move?'}</Text>
+                        <Text style={styles.actionSub}>
+                            {hasOpenJob
+                                ? 'Finish or cancel your current job before posting a new request.'
+                                : 'Post a job and get real-time bids from vetted drivers.'}
+                        </Text>
                         <TouchableOpacity
-                            style={styles.bookBtn}
-                            onPress={() => navigation.navigate('CreateJob')}
+                            style={[styles.bookBtn, hasOpenJob && styles.bookBtnDisabled]}
+                            onPress={handleCreateJob}
                             activeOpacity={0.9}
+                            disabled={hasOpenJob}
                         >
-                            <Text style={styles.bookBtnText}>Request a Truck</Text>
-                            <Icon name="arrow-forward" size={18} color={C.white} />
+                            <Text style={styles.bookBtnText}>
+                                {hasOpenJob ? 'Job Already Active' : 'Request a Truck'}
+                            </Text>
+                            {!hasOpenJob && <Icon name="arrow-forward" size={18} color={C.white} />}
                         </TouchableOpacity>
                     </View>
                     <Image source={require('../../assets/mediumTruck.png')} style={styles.actionImg} resizeMode="contain" />
                 </View>
 
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>My Shipments</Text>
-                    <TouchableOpacity onPress={loadJobs}>
-                        <Icon name="refresh" size={20} color={C.primaryStandard} />
-                    </TouchableOpacity>
+                    <Text style={styles.sectionTitle}>Active Shipments</Text>
+                    <View style={styles.sectionActions}>
+                        <TouchableOpacity onPress={() => navigation.navigate('OrderHistory')} style={styles.historyBtn}>
+                            <Icon name="time-outline" size={18} color={C.primaryStandard} />
+                            <Text style={styles.historyBtnText}>History</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={loadJobs}>
+                            <Icon name="refresh" size={20} color={C.primaryStandard} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <FlatList
@@ -235,9 +254,22 @@ const styles = StyleSheet.create({
         gap: 8
     },
     bookBtnText: { color: C.white, fontWeight: '700', fontSize: 14 },
+    bookBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.25)' },
+    actionCardMuted: { opacity: 0.95 },
     actionImg: { width: 120, height: 100, position: 'absolute', right: -20, bottom: -10, opacity: 0.9 },
 
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    sectionActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    historyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: C.primaryLight,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+    },
+    historyBtnText: { fontSize: 12, fontWeight: '700', color: C.primaryStandard },
     sectionTitle: { fontSize: 18, fontWeight: '800', color: C.textHead },
 
     list: { paddingBottom: 100 },

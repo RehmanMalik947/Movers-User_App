@@ -13,6 +13,14 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { jobApi, chatApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
+import {
+  getStatusColor,
+  getStatusLabel,
+  getUserStatusSubtitle,
+  isActiveStatus,
+  normalizeStatus,
+} from '../../utils/jobStatus';
+import CancelJobModal from '../../components/CancelJobModal';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
@@ -39,6 +47,7 @@ export default function JobDetailsScreen() {
     const [job, setJob] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
     const { user: currentUser } = useAuth();
 
     useEffect(() => {
@@ -47,13 +56,17 @@ export default function JobDetailsScreen() {
 
     const mapJobToUI = (j) => {
         if (!j) return null;
+        const rawStatus = normalizeStatus(j.status);
         return {
             ...j,
             pickup: j.pickupLocation || j.pickup || '',
             dropoff: j.deliveryLocation || j.dropoff || '',
             vehicleType: j.truckType || j.vehicleType || '',
-            status: (j.status || 'pending').toUpperCase().replace('-', '_'),
+            status: rawStatus.toUpperCase().replace(/-/g, '_'),
+            rawStatus,
             bids: j.bids || [],
+            driver_id: j.driverId || j.driver_id,
+            driver_name: j.driverName || j.driver_name,
         };
     };
 
@@ -112,6 +125,23 @@ export default function JobDetailsScreen() {
       }
     };
 
+    const handleCancelJob = async (reason) => {
+      setActionLoading(true);
+      try {
+        await jobApi.cancel(jobId, reason);
+        setShowCancelModal(false);
+        Alert.alert('Cancelled', 'Your shipment has been cancelled.', [
+          { text: 'OK', onPress: () => navigation.navigate('HomeMain') },
+        ]);
+      } catch (error) {
+        Alert.alert('Error', error.message || 'Could not cancel job');
+      } finally {
+        setActionLoading(false);
+      }
+    };
+
+    const canCancel = normalizeStatus(job?.rawStatus) === 'pending';
+
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={C.primaryStandard} /></View>;
     if (!job) return <View style={styles.center}><Text style={styles.errorText}>Job not found</Text></View>;
 
@@ -128,25 +158,22 @@ export default function JobDetailsScreen() {
                 {/* Status Section */}
                 <View style={[styles.statusBanner,
                 (job.status === 'BIDDING' || job.status === 'PENDING') ? { backgroundColor: C.primaryStandard } :
-                    job.status === 'ACCEPTED' ? { backgroundColor: C.success } :
-                        { backgroundColor: C.primary }
+                    job.status === 'COMPLETED' ? { backgroundColor: C.success } :
+                        { backgroundColor: getStatusColor(job.rawStatus) || C.primary }
                 ]}>
                     <View style={styles.statusContent}>
                         <Icon name="shield-checkmark" size={24} color={C.white} />
                         <View>
-                            <Text style={styles.statusText}>{job.status?.replace('_', ' ') || job.status}</Text>
+                            <Text style={styles.statusText}>{getStatusLabel(job.rawStatus)}</Text>
                             <Text style={styles.statusSub}>
-                                {(job.status === 'BIDDING' || job.status === 'PENDING') ? 'Waiting for bids' :
-                                    job.status === 'ACCEPTED' ? 'Owner needs to assign a driver' :
-                                        job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS' ? 'Job is in progress' :
-                                            job.status === 'COMPLETED' ? 'Completed' : '—'}
+                                {getUserStatusSubtitle(job.rawStatus)}
                             </Text>
                         </View>
                     </View>
                 </View>
 
                 {/* Track and Chat options */}
-                {(job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS') && (
+                {isActiveStatus(job.rawStatus) && (
                   <View style={{ marginBottom: 20, gap: 12 }}>
                     <TouchableOpacity
                       style={styles.trackButton}
@@ -169,8 +196,30 @@ export default function JobDetailsScreen() {
                   </View>
                 )}
 
+                {canCancel && (
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setShowCancelModal(true)}
+                    disabled={actionLoading}
+                    activeOpacity={0.8}
+                  >
+                    <Icon name="close-circle-outline" size={20} color={C.error} />
+                    <Text style={styles.cancelButtonText}>Cancel Shipment</Text>
+                  </TouchableOpacity>
+                )}
+
+                {normalizeStatus(job.rawStatus) === 'cancelled' && job.cancelReason && (
+                  <View style={styles.cancelledInfo}>
+                    <Icon name="information-circle-outline" size={20} color={C.error} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.cancelledLabel}>Cancellation reason</Text>
+                      <Text style={styles.cancelledReason}>{job.cancelReason}</Text>
+                    </View>
+                  </View>
+                )}
+
                 {/* Rate Driver - only for completed jobs */}
-                {job.status === 'COMPLETED' && (
+                {normalizeStatus(job.rawStatus) === 'completed' && (
                     <TouchableOpacity 
                         style={styles.rateButton} 
                         onPress={() => navigation.navigate('RateJob', {
@@ -268,6 +317,13 @@ export default function JobDetailsScreen() {
                     ))
                 )}
             </ScrollView>
+
+            <CancelJobModal
+              visible={showCancelModal}
+              onClose={() => setShowCancelModal(false)}
+              onConfirm={handleCancelJob}
+              loading={actionLoading}
+            />
         </SafeAreaView>
     );
 }
@@ -376,6 +432,31 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 4,
     },
-    rateButtonText: { color: C.warning, fontWeight: '800', fontSize: 16 }
+    rateButtonText: { color: C.warning, fontWeight: '800', fontSize: 16 },
+    cancelButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surface,
+      padding: 16,
+      borderRadius: 20,
+      marginBottom: 20,
+      gap: 10,
+      borderWidth: 1.5,
+      borderColor: C.error,
+    },
+    cancelButtonText: { color: C.error, fontWeight: '800', fontSize: 16 },
+    cancelledInfo: {
+      flexDirection: 'row',
+      gap: 12,
+      backgroundColor: '#FEF2F2',
+      padding: 16,
+      borderRadius: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: '#FECACA',
+    },
+    cancelledLabel: { fontSize: 11, fontWeight: '700', color: C.error, textTransform: 'uppercase', marginBottom: 4 },
+    cancelledReason: { fontSize: 14, color: C.textHead, fontWeight: '500', lineHeight: 20 },
 });
 

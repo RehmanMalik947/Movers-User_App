@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuth } from '../context/AuthContext';
+import { jobApi } from '../api/apiService';
 
 // Screens
 import UserDashboard from '../screens/user/DashboardScreen';
@@ -17,6 +19,7 @@ import DropoffLocationScreen from '../screens/DropoffLocation';
 import PlaceOrderScreen from '../screens/PlaceOrderScreen';
 import RateJobScreen from '../screens/RateJobScreen';
 import ChatStack from './ChatStack';
+import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 
 // ─── Design Tokens - Matching Premium Aesthetic ──────────────────────────────────
 const C = {
@@ -57,6 +60,7 @@ function HomeStack() {
             <Stack.Screen name="HomeMain" component={UserDashboard} />
             <Stack.Screen name="CreateJob" component={CreateJobScreen} />
             <Stack.Screen name="JobDetails" component={JobDetailsScreen} />
+            <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
             <Stack.Screen name="Pickup" component={PickupLocationScreen} />
             <Stack.Screen name="Dropoff" component={DropoffLocationScreen} />
             <Stack.Screen name="RateJob" component={RateJobScreen} />
@@ -67,6 +71,7 @@ function HomeStack() {
 // ================= USER STACK =================
 export default function UserStack() {
     const insets = useSafeAreaInsets();
+    const { user } = useAuth();
 
     return (
         <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -137,11 +142,22 @@ export default function UserStack() {
                         tabBarLabel: () => null,
                     }}
                     listeners={({ navigation }) => ({
-                        tabPress: (e) => {
+                        tabPress: async (e) => {
                             e.preventDefault();
-                            navigation.navigate('HomeTab', {
-                                screen: 'CreateJob',
-                            });
+                            try {
+                                const res = await jobApi.getMyActiveJobs(user.id);
+                                const list = res?.data ?? [];
+                                if (list.length > 0) {
+                                    Alert.alert(
+                                        'Active Job Exists',
+                                        'Cancel your current shipment before posting a new job.',
+                                    );
+                                    return;
+                                }
+                            } catch {
+                                // allow navigation if check fails
+                            }
+                            navigation.navigate('HomeTab', { screen: 'CreateJob' });
                         },
                     })}
                 />

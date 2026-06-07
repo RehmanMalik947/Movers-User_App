@@ -87,9 +87,16 @@ export default function ProfileScreen({ navigation }) {
 
   const menuItems = [
     {
-      icon: 'cart-outline',
-      label: 'My Orders',
-      onPress: () => navigation?.navigate('Orders'),
+      icon: 'time-outline',
+      label: 'Order History',
+      onPress: () => {
+        const role = user?.role?.toLowerCase();
+        if (role === 'driver') {
+          navigation?.navigate('Dashboard', { screen: 'OrderHistory' });
+        } else {
+          navigation?.navigate('HomeTab', { screen: 'OrderHistory' });
+        }
+      },
     },
     {
       icon: 'card-outline',

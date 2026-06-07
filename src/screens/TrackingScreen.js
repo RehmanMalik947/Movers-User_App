@@ -17,6 +17,13 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
 import { jobApi, chatApi } from '../api/apiService';
+import {
+  formatElapsedTime,
+  getStatusLabel,
+  getTrackingSteps,
+  isActiveStatus,
+  normalizeStatus,
+} from '../utils/jobStatus';
 
 const { width } = Dimensions.get('window');
 
@@ -72,37 +79,6 @@ const getCoordsFromAddress = (address, type) => {
   }
 };
 
-const getStatusSteps = (status, date) => {
-  const formattedDate = date ? new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pending';
-  const steps = [
-    {
-      label: 'Order Placed',
-      completed: true,
-      date: formattedDate,
-      icon: 'cart-outline',
-    },
-    {
-      label: 'Driver Assigned',
-      completed: ['assigned', 'in-progress', 'completed'].includes(status),
-      date: ['assigned', 'in-progress', 'completed'].includes(status) ? 'Completed' : 'Pending',
-      icon: 'person-outline',
-    },
-    {
-      label: 'In Transit',
-      completed: ['in-progress', 'completed'].includes(status),
-      date: ['in-progress', 'completed'].includes(status) ? 'In Transit' : 'Pending',
-      icon: 'car-outline',
-    },
-    {
-      label: 'Delivered',
-      completed: status === 'completed',
-      date: status === 'completed' ? 'Delivered' : 'Pending',
-      icon: 'checkmark-circle-outline',
-    },
-  ];
-  return steps;
-};
-
 const mapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#f8fafc' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
@@ -121,6 +97,7 @@ export default function TrackOrderScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statusSteps, setStatusStepsList] = useState([]);
+  const [elapsed, setElapsed] = useState('00:00:00');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -151,16 +128,16 @@ export default function TrackOrderScreen() {
         const fetchedJob = res?.data ?? res;
         if (fetchedJob) {
           setJob(fetchedJob);
-          setStatusStepsList(getStatusSteps(fetchedJob.status?.toLowerCase(), fetchedJob.createdAt));
+          setStatusStepsList(getTrackingSteps(fetchedJob));
         }
       } else {
         // Find latest active job from my jobs
         const res = await jobApi.getMyJobs(user.id);
         const list = Array.isArray(res) ? res : (res?.data ?? []);
-        const activeJob = list.find(j => ['assigned', 'in-progress'].includes(j.status?.toLowerCase())) || list[0];
+        const activeJob = list.find((j) => isActiveStatus(j.status)) || list[0];
         if (activeJob) {
           setJob(activeJob);
-          setStatusStepsList(getStatusSteps(activeJob.status?.toLowerCase(), activeJob.createdAt));
+          setStatusStepsList(getTrackingSteps(activeJob));
         } else {
           setJob(null);
         }
@@ -185,6 +162,17 @@ export default function TrackOrderScreen() {
     }, 5000);
     return () => clearInterval(timer);
   }, [fetchJobDetails]);
+
+  // Live elapsed timer when delivery is in progress
+  useEffect(() => {
+    if (normalizeStatus(job?.status) === 'in-progress' && job?.startedAt) {
+      const tick = () => setElapsed(formatElapsedTime(job.startedAt));
+      tick();
+      const t = setInterval(tick, 1000);
+      return () => clearInterval(t);
+    }
+    setElapsed('00:00:00');
+  }, [job?.status, job?.startedAt]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -257,16 +245,20 @@ export default function TrackOrderScreen() {
   // Calculate coordinates
   const pickupCoords = getCoordsFromAddress(job.pickupLocation || job.pickup, 'pickup');
   const dropoffCoords = getCoordsFromAddress(job.deliveryLocation || job.dropoff, 'dropoff');
-  const jobStatus = job.status?.toLowerCase();
+  const jobStatus = normalizeStatus(job.status);
 
   let driverCoords = null;
-  if (['assigned', 'in-progress', 'completed'].includes(jobStatus)) {
+  if (isActiveStatus(job.status) || jobStatus === 'completed') {
     if (jobStatus === 'assigned') {
+      driverCoords = {
+        latitude: pickupCoords.latitude + 0.01,
+        longitude: pickupCoords.longitude + 0.01,
+      };
+    } else if (jobStatus === 'arrived_at_pickup') {
       driverCoords = pickupCoords;
     } else if (jobStatus === 'completed') {
       driverCoords = dropoffCoords;
     } else {
-      // Halfway between pickup and dropoff
       driverCoords = {
         latitude: (pickupCoords.latitude + dropoffCoords.latitude) / 2,
         longitude: (pickupCoords.longitude + dropoffCoords.longitude) / 2,
@@ -326,8 +318,14 @@ export default function TrackOrderScreen() {
             />
           </View>
           <Text style={styles.progressSubtext}>
-            {job.status?.toUpperCase()?.replace('-', ' ')} • Goods: {job.goodsType || 'Goods'}
+            {getStatusLabel(job.status)} • Goods: {job.goodsType || 'Goods'}
           </Text>
+          {jobStatus === 'in-progress' && job.startedAt && (
+            <View style={styles.elapsedRow}>
+              <Icon name="time-outline" size={14} color={C.primaryStandard} />
+              <Text style={styles.elapsedText}>In transit for {elapsed}</Text>
+            </View>
+          )}
         </Animated.View>
 
         {/* Live Location Map */}
@@ -631,6 +629,22 @@ const styles = StyleSheet.create({
   progressSubtext: {
     fontSize: 12,
     color: C.textMuted,
+  },
+  elapsedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: C.primaryLight,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  elapsedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.primaryStandard,
   },
 
   // Order Card

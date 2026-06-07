@@ -10,6 +10,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import WalletStack from './WalletStack';
 import RateJobScreen from '../screens/RateJobScreen';
 import ChatStack from './ChatStack';
+import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
@@ -29,6 +30,7 @@ function DriverHomeStack() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="DriverDashboard" component={DriverDashboard} />
             <Stack.Screen name="ActiveJob" component={ActiveJobScreen} />
+            <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
             <Stack.Screen name="RateJob" component={RateJobScreen} />
         </Stack.Navigator>
     );

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { jobApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { resetLocations } from '../../redux/slices/locationSlice';
 
@@ -39,6 +39,33 @@ export default function CreateJobScreen() {
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
     const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+    const [blocked, setBlocked] = useState(false);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            let mounted = true;
+            (async () => {
+                try {
+                    const res = await jobApi.getMyActiveJobs(user.id);
+                    const list = res?.data ?? [];
+                    if (!mounted) return;
+                    if (list.length > 0) {
+                        setBlocked(true);
+                        Alert.alert(
+                            'Active Job Exists',
+                            'You already have an open shipment. Cancel it before posting a new job.',
+                            [{ text: 'Go Back', onPress: () => navigation.goBack() }],
+                        );
+                    } else {
+                        setBlocked(false);
+                    }
+                } catch {
+                    if (mounted) setBlocked(false);
+                }
+            })();
+            return () => { mounted = false; };
+        }, [user.id])
+    );
 
     // Form State
     const [title, setTitle] = useState('');
@@ -67,6 +94,10 @@ export default function CreateJobScreen() {
     const vehicleType = selectedCategory?.name || (categories[0]?.name) || '';
 
     const handlePostJob = async () => {
+        if (blocked) {
+            Alert.alert('Active Job Exists', 'Cancel your current job before posting a new one.');
+            return;
+        }
         if (!title || !pickup.address || !dropoff.address || !goodsType) {
             Alert.alert("Missing Fields", "Please fill in all required fields.");
             return;
@@ -214,9 +245,9 @@ export default function CreateJobScreen() {
                     )}
 
                     <TouchableOpacity
-                        style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+                        style={[styles.submitBtn, (loading || blocked) && { opacity: 0.7 }]}
                         onPress={handlePostJob}
-                        disabled={loading}
+                        disabled={loading || blocked}
                         activeOpacity={0.8}
                     >
                         {loading ? (

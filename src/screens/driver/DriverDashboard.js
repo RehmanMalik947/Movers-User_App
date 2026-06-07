@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { driverApi, chatApi, jobApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { getStatusColor, getStatusLabel, isActiveStatus } from '../../utils/jobStatus';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
@@ -33,6 +34,7 @@ export default function DriverDashboard() {
     const [loading, setLoading] = useState(true);
     const [isOnline, setIsOnline] = useState(false);
     const [statusLoading, setStatusLoading] = useState(false);
+    const [completedCount, setCompletedCount] = useState(0);
 
     const fetchStatus = async () => {
         try {
@@ -70,12 +72,17 @@ export default function DriverDashboard() {
     const loadJobs = async () => {
         setLoading(true);
         try {
-            const res = await jobApi.getDriverJobs(user.id);
-            if (res.success) {
-                setJobs(res.data);
-            }
+            const [activeRes, historyRes] = await Promise.all([
+                jobApi.getDriverActiveJobs(user.id),
+                jobApi.getDriverHistory(user.id),
+            ]);
+            const activeList = activeRes?.data ?? [];
+            const historyList = historyRes?.data ?? [];
+            setJobs(activeList);
+            setCompletedCount(historyList.filter((j) => j.status === 'completed').length);
         } catch (error) {
             console.error(error);
+            setJobs([]);
         } finally {
             setLoading(false);
         }
@@ -122,7 +129,8 @@ export default function DriverDashboard() {
 
     const renderJobItem = ({ item }) => {
         const isActive = item.status?.toLowerCase() !== 'completed';
-        const displayStatus = item.status ? item.status.toUpperCase() : 'UNKNOWN';
+        const displayStatus = getStatusLabel(item.status);
+        const statusColor = getStatusColor(item.status);
         const date = item.requestedDate || item.date || new Date().toISOString();
         return (
             <TouchableOpacity
@@ -132,8 +140,8 @@ export default function DriverDashboard() {
                 activeOpacity={0.8}
             >
                 <View style={styles.cardHeader}>
-                    <View style={[styles.statusBadge, { backgroundColor: isActive ? C.primaryLight : C.border }]}>
-                        <Text style={[styles.statusText, { color: isActive ? C.primaryStandard : C.textMuted }]}>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColor + '18' }]}>
+                        <Text style={[styles.statusText, { color: statusColor }]}>
                             {displayStatus}
                         </Text>
                     </View>
@@ -204,17 +212,26 @@ export default function DriverDashboard() {
 
                 <View style={styles.statsRow}>
                     <View style={styles.statBox}>
-                        <Text style={styles.statVal}>{jobs.filter(j => j.status?.toLowerCase() !== 'completed').length}</Text>
+                        <Text style={styles.statVal}>{jobs.length}</Text>
                         <Text style={styles.statLab}>Active Jobs</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statBox}>
-                        <Text style={styles.statVal}>{jobs.filter(j => j.status?.toLowerCase() === 'completed').length}</Text>
+                        <Text style={styles.statVal}>{completedCount}</Text>
                         <Text style={styles.statLab}>Completed</Text>
                     </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>Assignments</Text>
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Active Assignments</Text>
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('OrderHistory')}
+                        style={styles.historyBtn}
+                    >
+                        <Icon name="time-outline" size={16} color={C.primaryStandard} />
+                        <Text style={styles.historyText}>History</Text>
+                    </TouchableOpacity>
+                </View>
 
                 <FlatList
                     data={jobs}
@@ -321,7 +338,23 @@ const styles = StyleSheet.create({
     statLab: { fontSize: 12, color: C.textMuted, marginTop: 2 },
     statDivider: { width: 1, height: 30, backgroundColor: C.divider },
 
-    sectionTitle: { fontSize: 18, fontWeight: '800', marginBottom: 16, color: C.textHead },
+    sectionTitle: { fontSize: 18, fontWeight: '800', color: C.textHead },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    historyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: C.primaryLight,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+    },
+    historyText: { fontSize: 12, fontWeight: '700', color: C.primaryStandard },
     list: { paddingBottom: 90 },
     jobCard: { 
         backgroundColor: C.surface, 

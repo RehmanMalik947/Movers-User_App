@@ -18,6 +18,7 @@ const C = {
   border: '#E2E8F0',
   white: '#FFFFFF',
   success: '#10B981',
+  error: '#EF4444',
 };
 
 export default function AssignDriverScreen() {
@@ -81,26 +82,47 @@ export default function AssignDriverScreen() {
                     data={drivers}
                     keyExtractor={item => String(item.id)}
                     showsVerticalScrollIndicator={false}
-                    renderItem={({ item }) => (
+                    renderItem={({ item }) => {
+                        const isBusy = item.hasActiveJob;
+                        const isSelected = selectedDriver?.id === item.id;
+                        return (
                         <TouchableOpacity
-                            style={[styles.driverCard, selectedDriver?.id === item.id && styles.selected]}
-                            onPress={() => setSelectedDriver(item)}
-                            activeOpacity={0.7}
+                            style={[
+                              styles.driverCard,
+                              isSelected && styles.selected,
+                              isBusy && styles.driverBusy,
+                            ]}
+                            onPress={() => {
+                              if (isBusy) {
+                                Alert.alert(
+                                  'Driver Busy',
+                                  `${item.name} is on an active job${item.activeJobTitle ? `: ${item.activeJobTitle}` : ''}. Complete it before assigning a new one.`,
+                                );
+                                return;
+                              }
+                              setSelectedDriver(item);
+                            }}
+                            activeOpacity={isBusy ? 1 : 0.7}
                         >
-                            <View style={[styles.avatar, selectedDriver?.id === item.id ? { backgroundColor: C.primaryStandard } : { backgroundColor: C.primaryLight }]}>
-                                <Text style={[styles.avatarText, selectedDriver?.id === item.id && { color: C.white }]}>
+                            <View style={[styles.avatar, isSelected ? { backgroundColor: C.primaryStandard } : { backgroundColor: C.primaryLight }]}>
+                                <Text style={[styles.avatarText, isSelected && { color: C.white }]}>
                                     {(item.name || 'D').charAt(0).toUpperCase()}
                                 </Text>
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.name}>{item.name}</Text>
                                 <Text style={styles.phone}>{item.phone || 'No phone number'}</Text>
+                                {isBusy && (
+                                  <Text style={styles.busyText}>On active job — unavailable</Text>
+                                )}
                             </View>
                             <View style={styles.radio}>
-                                {selectedDriver?.id === item.id && <View style={styles.radioInner} />}
+                                {isSelected && !isBusy && <View style={styles.radioInner} />}
+                                {isBusy && <Icon name="lock-closed" size={14} color={C.textMuted} />}
                             </View>
                         </TouchableOpacity>
-                    )}
+                        );
+                    }}
                     ListEmptyComponent={
                         <View style={styles.empty}>
                             <Icon name="people-outline" size={48} color={C.border} />
@@ -152,10 +174,12 @@ const styles = StyleSheet.create({
         borderColor: C.border,
     },
     selected: { borderColor: C.primaryStandard, backgroundColor: C.primaryLight + '40' },
+    driverBusy: { opacity: 0.65, backgroundColor: '#F1F5F9' },
     avatar: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
     avatarText: { fontSize: 18, fontWeight: '800', color: C.primaryStandard },
     name: { fontSize: 16, fontWeight: '700', color: C.textHead },
     phone: { fontSize: 13, color: C.textMuted, marginTop: 2 },
+    busyText: { fontSize: 11, color: C.error, fontWeight: '700', marginTop: 4 },
     radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
     radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: C.primaryStandard },
     btn: { 

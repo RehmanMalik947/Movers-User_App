@@ -32,7 +32,7 @@ apiService.interceptors.response.use(
         
         if (error.response) {
             // Server responded with a status code out of 2xx range
-            message = error.response.data?.message || error.response.data || error.message;
+            message = error.response.data?.error || error.response.data?.message || error.response.data || error.message;
             console.error('API Error Response:', error.response.status, error.response.data);
         } else if (error.request) {
             // Request was made but no response was received
@@ -56,12 +56,17 @@ export const authApi = {
 
 export const jobApi = {
     getAll: (params) => apiService.get('jobs', { params }),
-    getMyJobs: (userId) => apiService.get('jobs', { params: { userId } }),
-    getDriverJobs: (driverId) => apiService.get('jobs', { params: { driverId } }),
+    getMyJobs: (userId, params = {}) => apiService.get('jobs', { params: { userId, ...params } }),
+    getMyActiveJobs: (userId) => apiService.get('jobs', { params: { userId, active: true } }),
+    getMyHistory: (userId) => apiService.get('jobs', { params: { userId, history: true } }),
+    getDriverJobs: (driverId, params = {}) => apiService.get('jobs', { params: { driverId, ...params } }),
+    getDriverActiveJobs: (driverId) => apiService.get('jobs', { params: { driverId, active: true } }),
+    getDriverHistory: (driverId) => apiService.get('jobs', { params: { driverId, history: true } }),
     getOne: (id) => apiService.get(`jobs/${id}`),
     getCategories: () => apiService.get('jobs/categories'),
     getBids: (jobId) => apiService.get(`jobs/${jobId}/bids`),
     acceptBid: (jobId, bidId) => apiService.patch(`jobs/${jobId}/bids/${bidId}/accept`),
+    cancel: (jobId, reason) => apiService.patch(`jobs/${jobId}/cancel`, { reason }),
     create: (data) => apiService.post('jobs', data),
     update: (id, data) => apiService.put(`jobs/${id}`, data),
     delete: (id) => apiService.delete(`jobs/${id}`),
@@ -109,6 +114,10 @@ export const chatApi = {
 export const driverApi = {
     getProfile: () => apiService.get('drivers/profile'),
     toggleOnline: (is_online) => apiService.patch('drivers/toggle-online', { is_online }),
+    getActiveJob: () => apiService.get('drivers/jobs/active'),
+    arriveAtPickup: (jobId) => apiService.patch(`drivers/jobs/${jobId}/arrive`),
+    startJob: (jobId) => apiService.patch(`drivers/jobs/${jobId}/start`),
+    completeJob: (jobId) => apiService.patch(`drivers/jobs/${jobId}/complete`),
 };
 
 export const walletApi = {

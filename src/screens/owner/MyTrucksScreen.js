@@ -62,11 +62,11 @@ export default function MyTrucksScreen() {
   const [editId, setEditId] = useState(null);
 
   const vehicleIcons = {
-    pickup: require('../../assets/pickup_premium.png'),
-    shehzore: require('../../assets/shehzore_premium.png'),
-    mazda: require('../../assets/mazda_premium.png'),
-    mini_mazda: require('../../assets/mini_mazda_premium.png'),
-    default: require('../../assets/smallTruck.png'),
+    pickup: require('../../assets/pickup_truck.png'),
+    shehzore: require('../../assets/pickup_truck.png'),
+    mazda: require('../../assets/pickup_truck.png'),
+    mini_mazda: require('../../assets/pickup_truck.png'),
+    default: require('../../assets/pickup_truck.png'),
   };
 
   const getIcon = (iconName) => {
