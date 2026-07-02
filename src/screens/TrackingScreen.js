@@ -134,7 +134,7 @@ export default function TrackOrderScreen() {
         // Find latest active job from my jobs
         const res = await jobApi.getMyJobs(user.id);
         const list = Array.isArray(res) ? res : (res?.data ?? []);
-        const activeJob = list.find((j) => isActiveStatus(j.status)) || list[0];
+        const activeJob = list.find((j) => isActiveStatus(j.status));
         if (activeJob) {
           setJob(activeJob);
           setStatusStepsList(getTrackingSteps(activeJob));
@@ -231,12 +231,17 @@ export default function TrackOrderScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.center}>
-          <Icon name="cube-outline" size={60} color={C.border} />
-          <Text style={styles.noActiveTitle}>No Active Shipments</Text>
-          <Text style={styles.noActiveSub}>You don't have any shipments currently in progress to track.</Text>
-          <TouchableOpacity style={styles.reloadBtn} onPress={handleRefresh}>
-            <Text style={styles.reloadBtnText}>Refresh</Text>
-          </TouchableOpacity>
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconWrapper}>
+              <Icon name="cube-outline" size={50} color={C.primaryStandard} />
+            </View>
+            <Text style={styles.noActiveTitle}>No Active Shipments</Text>
+            <Text style={styles.noActiveSub}>You don't have any shipments currently in progress to track. Book a new mover to get started!</Text>
+            <TouchableOpacity style={styles.reloadBtn} onPress={handleRefresh}>
+              <Icon name="refresh" size={18} color={C.white} style={{marginRight: 8}}/>
+              <Text style={styles.reloadBtnText}>Refresh Status</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -923,35 +928,59 @@ const styles = StyleSheet.create({
     color: C.textBody,
   },
   noActiveTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: C.textHead,
-    marginTop: 16,
     marginBottom: 8,
   },
   noActiveSub: {
-    fontSize: 14,
+    fontSize: 15,
     color: C.textMuted,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 24,
-    paddingHorizontal: 20,
+  },
+  emptyCard: {
+    backgroundColor: C.surface,
+    borderRadius: 24,
+    padding: 30,
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  emptyIconWrapper: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: C.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   reloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: C.primaryStandard,
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
     shadowColor: C.primaryStandard,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+    marginTop: 10,
   },
   reloadBtnText: {
     color: C.white,
     fontWeight: '700',
-    fontSize: 15,
+    fontSize: 16,
   },
   customMapMarkerPickup: {
     alignItems: 'center',

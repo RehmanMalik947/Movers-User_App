@@ -143,10 +143,8 @@ export default function OrderHistoryScreen() {
           ListEmptyComponent={
             <View style={styles.center}>
               <Icon name="time-outline" size={52} color={C.border} />
-              <Text style={styles.emptyTitle}>No past orders yet</Text>
-              <Text style={styles.emptySub}>
-                Completed and cancelled orders will appear here.
-              </Text>
+              <Text style={styles.emptyTitle}>No Past Orders</Text>
+              <Text style={styles.emptySub}>Your completed orders will appear here</Text>
             </View>
           }
         />

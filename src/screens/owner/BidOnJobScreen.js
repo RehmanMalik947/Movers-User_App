@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { jobApi, ownerApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
-
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
   primary: '#1847B1',        // Deep navy blue
@@ -52,7 +51,7 @@ export default function BidOnJobScreen() {
                 });
             }
         } catch (error) {
-            Alert.alert("Error", "Could not load job details");
+            Alert.alert('Error', 'Could not load job details');
         } finally {
             setLoading(false);
         }
@@ -61,17 +60,17 @@ export default function BidOnJobScreen() {
     const handlePlaceBid = async () => {
         const price = parseFloat(bidAmount, 10);
         if (!bidAmount || isNaN(price) || price <= 0) {
-            Alert.alert("Required", "Please enter a valid bid amount (Rs.)");
+            Alert.alert('Required', 'Please enter a valid bid amount');
             return;
         }
 
         setSubmitting(true);
         try {
             await ownerApi.placeBid(jobId, { price });
-            Alert.alert("Success", "Bid placed! The customer will see your offer.");
+            Alert.alert('Success', 'Your bid has been placed successfully');
             navigation.goBack();
         } catch (error) {
-            Alert.alert("Error", error.message || "Failed to place bid");
+            Alert.alert('Error', error.message || 'Failed to place bid');
         } finally {
             setSubmitting(false);
         }
@@ -86,7 +85,7 @@ export default function BidOnJobScreen() {
     if (!job) return (
         <View style={styles.center}>
             <Icon name="alert-circle-outline" size={50} color={C.border} />
-            <Text style={styles.emptyText}>Job no longer available</Text>
+            <Text style={styles.emptyText}>Job details unavailable</Text>
         </View>
     );
 
@@ -131,7 +130,7 @@ export default function BidOnJobScreen() {
                 </View>
 
                 <View style={styles.bidSection}>
-                    <Text style={styles.sectionTitle}>Your Offer Amount</Text>
+                    <Text style={styles.sectionTitle}>Your Offer</Text>
                     <View style={styles.inputWrapper}>
                         <Text style={styles.currencyPrefix}>Rs.</Text>
                         <TextInput
@@ -144,7 +143,7 @@ export default function BidOnJobScreen() {
                             autoFocus
                         />
                     </View>
-                    <Text style={styles.hint}>Suggested bids are around Rs. 4,500 - 6,000</Text>
+                    <Text style={styles.hint}>Enter your best price for this job</Text>
                 </View>
 
                 <TouchableOpacity

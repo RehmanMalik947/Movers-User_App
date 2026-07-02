@@ -43,7 +43,7 @@ function getTxConfig(tx) {
 }
 
 function getTxLabel(tx) {
-  if (tx.description?.toLowerCase().includes('top-up')) return 'Top Up';
+  if (tx.description?.toLowerCase().includes('top-up')) return 'Top-up';
   if (tx.description?.toLowerCase().includes('withdrawal')) return 'Withdrawal';
   if (parseFloat(tx.adminCommission) > 0) return 'Commission Deducted';
   if (tx.type === 'credit') return 'Earning';
@@ -189,7 +189,7 @@ export default function WalletScreen({ navigation }) {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerTitle}>Wallet</Text>
-            <Text style={styles.headerSub}>Manage your earnings & balance</Text>
+            <Text style={styles.headerSub}>Manage your earnings</Text>
           </View>
           <TouchableOpacity style={styles.historyIcon} onPress={() => {}}>
             <Icon name="receipt-outline" size={22} color={C.primaryStandard} />
@@ -245,7 +245,7 @@ export default function WalletScreen({ navigation }) {
                     <Icon name="add-circle" size={28} color={C.success} />
                   </View>
                   <Text style={styles.actionLabel}>Top Up</Text>
-                  <Text style={styles.actionDesc}>Add funds via JazzCash/EasyPaisa</Text>
+                  <Text style={styles.actionDesc}>Add funds to wallet</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Withdraw', { balance })} activeOpacity={0.85}>
                   <View style={[styles.actionIconBg, { backgroundColor: C.errorLight }]}>
@@ -267,8 +267,8 @@ export default function WalletScreen({ navigation }) {
                   <View style={styles.emptyIconBg}>
                     <Icon name="receipt-outline" size={44} color={C.primaryStandard} />
                   </View>
-                  <Text style={styles.emptyTitle}>No transactions yet</Text>
-                  <Text style={styles.emptySub}>Your wallet activity will appear here</Text>
+                  <Text style={styles.emptyTitle}>No Transactions</Text>
+                  <Text style={styles.emptySub}>Your transaction history will appear here</Text>
                 </View>
               )}
             </>

@@ -20,7 +20,6 @@ import { ownerApi, chatApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { API_BASE_URL } from '../../config/api';
-
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
   primary: '#1847B1',        // Deep navy blue
@@ -104,7 +103,7 @@ export default function MyDriversScreen() {
   const pickImage = (field) => {
     Alert.alert(
       'Select Image',
-      'Choose an option to upload your document',
+      'Choose how to upload document',
       [
         {
           text: 'Camera',
@@ -153,12 +152,12 @@ export default function MyDriversScreen() {
 
   const handleAddDriver = async () => {
     if (!form.name.trim() || !form.phone.trim() || !form.email.trim() || (!isEditing && !form.password.trim()) || !form.cnic.trim() || !form.licence_number.trim()) {
-      Alert.alert('Required', 'Please fill in all required fields.');
+      Alert.alert('Required', 'Please fill in all required fields');
       return;
     }
 
     if (!isEditing && (!form.license_pic || !form.cnic_front_pic || !form.cnic_back_pic)) {
-      Alert.alert('Documents Required', 'Please upload License and CNIC (Front & Back) pictures.');
+      Alert.alert('Documents Required', 'Please upload all required documents');
       return;
     }
 
@@ -202,7 +201,7 @@ export default function MyDriversScreen() {
         profile_pic: null, license_pic: null, cnic_front_pic: null, cnic_back_pic: null 
       });
       loadDrivers();
-      Alert.alert('Success', isEditing ? 'Driver updated successfully.' : 'Driver added successfully and pending verification.');
+      Alert.alert('Success', isEditing ? 'Driver updated successfully' : 'Driver added successfully');
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to add driver');
     } finally {
@@ -225,7 +224,7 @@ export default function MyDriversScreen() {
   const handleDeleteDriver = async () => {
     Alert.alert(
       'Delete Driver',
-      'Are you sure you want to remove this driver profile?',
+      'Are you sure you want to remove this driver?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -270,7 +269,7 @@ export default function MyDriversScreen() {
                 onPress={() => toggleDriverStatus(item)}
                 activeOpacity={0.7}
             >
-                <Text style={styles.statusText}>{item.status || 'active'}</Text>
+                <Text style={styles.statusText}>{item.status === 'inactive' ? 'Inactive' : 'Active'}</Text>
             </TouchableOpacity>
             <Text style={styles.licence}>#{item.licence_number || '—'}</Text>
         </View>
@@ -290,7 +289,7 @@ export default function MyDriversScreen() {
       <View style={styles.header}>
         <View>
             <Text style={styles.title}>My Drivers</Text>
-            <Text style={styles.subTitle}>{drivers.length} drivers in your fleet</Text>
+            <Text style={styles.subTitle}>{drivers.length} drivers in fleet</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowAdd(true)} activeOpacity={0.8}>
           <Icon name="add" size={20} color={C.white} />
@@ -308,7 +307,7 @@ export default function MyDriversScreen() {
           !loading ? (
             <View style={styles.emptyContainer}>
                 <Icon name="people-outline" size={50} color={C.border} />
-                <Text style={styles.emptyText}>No drivers added yet.</Text>
+                <Text style={styles.emptyText}>No drivers yet</Text>
             </View>
           ) : null
         }
@@ -349,7 +348,7 @@ export default function MyDriversScreen() {
               <TextInput
                 style={styles.input}
                 value={form.name}
-                onChangeText={(t) => setForm({ ...form, name: t })}
+                onChangeText={(text) => setForm({ ...form, name: text })}
                 placeholder="Enter full name"
                 placeholderTextColor={C.textMuted}
               />
@@ -357,8 +356,8 @@ export default function MyDriversScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={(t) => setForm({ ...form, phone: t })}
-                placeholder="03xx xxxxxxx"
+                onChangeText={(text) => setForm({ ...form, phone: text })}
+                placeholder="03XX-XXXXXXX"
                 keyboardType="phone-pad"
                 placeholderTextColor={C.textMuted}
               />
@@ -366,17 +365,17 @@ export default function MyDriversScreen() {
               <TextInput
                 style={styles.input}
                 value={form.email}
-                onChangeText={(t) => setForm({ ...form, email: t })}
-                placeholder="driver@example.com"
+                onChangeText={(text) => setForm({ ...form, email: text })}
+                placeholder="driver@email.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 placeholderTextColor={C.textMuted}
               />
-              <Text style={styles.label}>Password {isEditing && '(Leave blank to keep current)'}</Text>
+              <Text style={styles.label}>Password {isEditing && '(leave blank to keep current)'}</Text>
               <TextInput
                 style={styles.input}
                 value={form.password}
-                onChangeText={(t) => setForm({ ...form, password: t })}
+                onChangeText={(text) => setForm({ ...form, password: text })}
                 placeholder="Set password"
                 secureTextEntry
                 placeholderTextColor={C.textMuted}
@@ -385,24 +384,24 @@ export default function MyDriversScreen() {
               <TextInput
                 style={styles.input}
                 value={form.cnic}
-                onChangeText={(t) => setForm({ ...form, cnic: t })}
-                placeholder="xxxxx-xxxxxxx-x"
+                onChangeText={(text) => setForm({ ...form, cnic: text })}
+                placeholder="XXXXX-XXXXXXX-X"
                 placeholderTextColor={C.textMuted}
               />
               <Text style={styles.label}>Driving Licence</Text>
               <TextInput
                 style={styles.input}
                 value={form.licence_number}
-                onChangeText={(t) => setForm({ ...form, licence_number: t })}
-                placeholder="Enter licence number"
+                onChangeText={(text) => setForm({ ...form, licence_number: text })}
+                placeholder="Licence number"
                 placeholderTextColor={C.textMuted}
               />
 
-              <Text style={styles.label}>Documents (Required)</Text>
+              <Text style={styles.label}>Documents Required</Text>
               
               <View style={styles.docsRow}>
                 <View style={styles.docCol}>
-                    <Text style={styles.docLabel}>License Pic</Text>
+                    <Text style={styles.docLabel}>License</Text>
                     <TouchableOpacity style={styles.docUpload} onPress={() => pickImage('license_pic')}>
                         {form.license_pic ? (
                             <Image source={{ uri: form.license_pic.uri }} style={styles.docPreview} />
@@ -456,7 +455,7 @@ export default function MyDriversScreen() {
                   activeOpacity={0.8}
                 >
                   <Icon name="trash-outline" size={20} color={C.error} />
-                  <Text style={styles.deleteText}>Remove Driver Profile</Text>
+                  <Text style={styles.deleteText}>Remove Driver</Text>
                 </TouchableOpacity>
               )}
               <View style={{ height: 40 }} />

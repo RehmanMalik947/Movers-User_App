@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,8 @@ import WalletStack from './WalletStack';
 import RateJobScreen from '../screens/RateJobScreen';
 import ChatStack from './ChatStack';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
+import DriverLocationTracker from '../components/DriverLocationTracker';
+import { DriverOnlineProvider } from '../context/DriverOnlineContext';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
@@ -40,7 +42,10 @@ export default function DriverStack() {
     const insets = useSafeAreaInsets();
 
     return (
-        <Tab.Navigator
+        <View style={{ flex: 1, backgroundColor: C.bg }}>
+            <DriverOnlineProvider>
+                <DriverLocationTracker />
+                <Tab.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarActiveTintColor: C.primaryStandard,
@@ -92,6 +97,8 @@ export default function DriverStack() {
                 }}
             />
         </Tab.Navigator>
+            </DriverOnlineProvider>
+        </View>
     );
 }
 

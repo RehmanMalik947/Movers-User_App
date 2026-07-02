@@ -171,6 +171,21 @@ export default function UserDashboard() {
                     <Image source={require('../../assets/mediumTruck.png')} style={styles.actionImg} resizeMode="contain" />
                 </View>
 
+                <TouchableOpacity
+                    style={styles.browseOwnersBtn}
+                    onPress={() => navigation.navigate('TruckOwners')}
+                    activeOpacity={0.85}
+                >
+                    <View style={styles.browseOwnersIcon}>
+                        <Icon name="business" size={22} color={C.primaryStandard} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.browseOwnersTitle}>Browse Truck Owners</Text>
+                        <Text style={styles.browseOwnersSub}>View ratings & send job requests to specific owners</Text>
+                    </View>
+                    <Icon name="chevron-forward" size={20} color={C.textMuted} />
+                </TouchableOpacity>
+
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Active Shipments</Text>
                     <View style={styles.sectionActions}>
@@ -257,6 +272,28 @@ const styles = StyleSheet.create({
     bookBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.25)' },
     actionCardMuted: { opacity: 0.95 },
     actionImg: { width: 120, height: 100, position: 'absolute', right: -20, bottom: -10, opacity: 0.9 },
+
+    browseOwnersBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: C.surface,
+        borderRadius: 18,
+        padding: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: C.border,
+        gap: 12,
+    },
+    browseOwnersIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: C.primaryLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    browseOwnersTitle: { fontSize: 15, fontWeight: '800', color: C.textHead },
+    browseOwnersSub: { fontSize: 12, color: C.textMuted, marginTop: 2 },
 
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sectionActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { ownerApi } from '../../api/apiService';
-
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
   primary: '#1847B1',
@@ -46,21 +45,21 @@ export default function AssignDriverScreen() {
 
     const handleAssign = async () => {
         if (!selectedDriver) {
-            Alert.alert("Select Driver", "Please select a driver first.");
+            Alert.alert('Required', 'Please select a driver first');
             return;
         }
         if (!jobId) {
-            Alert.alert("Error", "Job not found.");
+            Alert.alert('Error', 'Job not found');
             return;
         }
 
         setLoading(true);
         try {
             await ownerApi.assignDriver(jobId, selectedDriver.id);
-            Alert.alert("Success", "Driver assigned to this job.");
+            Alert.alert('Success', 'Driver assigned to job successfully');
             navigation.goBack();
         } catch (error) {
-            Alert.alert("Error", error.message || "Failed to assign driver");
+            Alert.alert('Error', error.message || 'Failed to assign driver');
         } finally {
             setLoading(false);
         }
@@ -76,7 +75,7 @@ export default function AssignDriverScreen() {
             </View>
 
             <View style={styles.content}>
-                <Text style={styles.subTitle}>Select a driver from your fleet</Text>
+                <Text style={styles.subTitle}>Select from your fleet</Text>
 
                 <FlatList
                     data={drivers}
@@ -96,7 +95,7 @@ export default function AssignDriverScreen() {
                               if (isBusy) {
                                 Alert.alert(
                                   'Driver Busy',
-                                  `${item.name} is on an active job${item.activeJobTitle ? `: ${item.activeJobTitle}` : ''}. Complete it before assigning a new one.`,
+                                  `${item.name} is currently on an active job${item.activeJobTitle ? `: ${item.activeJobTitle}` : ''}.`,
                                 );
                                 return;
                               }
@@ -111,9 +110,9 @@ export default function AssignDriverScreen() {
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.name}>{item.name}</Text>
-                                <Text style={styles.phone}>{item.phone || 'No phone number'}</Text>
+                                <Text style={styles.phone}>{item.phone || 'No phone'}</Text>
                                 {isBusy && (
-                                  <Text style={styles.busyText}>On active job — unavailable</Text>
+                                  <Text style={styles.busyText}>On active job</Text>
                                 )}
                             </View>
                             <View style={styles.radio}>
@@ -126,7 +125,7 @@ export default function AssignDriverScreen() {
                     ListEmptyComponent={
                         <View style={styles.empty}>
                             <Icon name="people-outline" size={48} color={C.border} />
-                            <Text style={styles.emptyText}>No drivers found in your fleet.</Text>
+                            <Text style={styles.emptyText}>No drivers in your fleet</Text>
                         </View>
                     }
                 />

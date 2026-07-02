@@ -212,7 +212,10 @@ export default function LoginScreen() {
               activeOpacity={0.88}
             >
               {isLoading ? (
-                <ActivityIndicator color={C.white} />
+                <View style={styles.loginBtnInner}>
+                  <ActivityIndicator size="small" color={C.white} style={{ marginRight: 8 }} />
+                  <Text style={styles.loginBtnText}>Signing In...</Text>
+                </View>
               ) : (
                 <View style={styles.loginBtnInner}>
                   <Text style={styles.loginBtnText}>Sign In</Text>

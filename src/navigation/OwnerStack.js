@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import AssignDriverScreen from '../screens/owner/AssignDriverScreen';
 import OwnerJobsScreen from '../screens/owner/OwnerJobsScreen';
 import MyTrucksScreen from '../screens/owner/MyTrucksScreen';
 import MyDriversScreen from '../screens/owner/MyDriversScreen';
+import FleetMapScreen from '../screens/owner/FleetMapScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import WalletStack from './WalletStack';
 import ChatStack from './ChatStack';
@@ -42,11 +43,14 @@ export default function OwnerStack() {
     const insets = useSafeAreaInsets();
 
     return (
-        <Tab.Navigator
+        <View style={{ flex: 1, backgroundColor: C.bg }}>
+            <Tab.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarActiveTintColor: C.primaryStandard,
                 tabBarInactiveTintColor: C.textMuted,
+                tabBarScrollEnabled: true,
+                tabBarItemStyle: styles.tabItem,
                 tabBarStyle: [
                     styles.tabBar,
                     {
@@ -91,6 +95,17 @@ export default function OwnerStack() {
             />
 
             <Tab.Screen
+                name="FleetMap"
+                component={FleetMapScreen}
+                options={{
+                    title: 'Live Map',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Icon name={focused ? "map" : "map-outline"} size={22} color={color} />
+                    ),
+                }}
+            />
+
+            <Tab.Screen
                 name="Messages"
                 component={ChatStack}
                 options={{
@@ -120,6 +135,7 @@ export default function OwnerStack() {
                 }}
             />
         </Tab.Navigator>
+        </View>
     );
 }
 

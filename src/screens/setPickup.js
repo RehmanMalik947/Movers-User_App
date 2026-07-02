@@ -4,7 +4,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { setPickupLocation } from '../redux/slices/locationSlice';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 
@@ -117,7 +117,7 @@ export default function PickupLocationScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <SafeAreaView style={styles.container} edges={['top']}>
       <MapView
         style={{ flex: 1 }}
         provider={PROVIDER_GOOGLE}
@@ -194,7 +194,7 @@ export default function PickupLocationScreen() {
           <Icon name="chevron-forward" size={18} color={C.white} />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -207,6 +207,8 @@ const mapStyle = [
 ];
 
 const styles = StyleSheet.create({
+      container: { flex: 1, backgroundColor: C.bg },
+
   searchOverlay: {
     position: 'absolute',
     top: 20,

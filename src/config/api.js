@@ -10,7 +10,7 @@ import { Platform } from 'react-native';
  *     Set IS_PHYSICAL_DEVICE = false when running on an emulator/simulator.
  */
 const IS_PHYSICAL_DEVICE = true;            // ← toggle this
-const DEVICE_HOST_IP    = '192.168.100.25';  // ← your PC's LAN IP
+const DEVICE_HOST_IP    = '192.168.137.208';  // ← your PC's LAN IP
 
 const getBaseUrl = () => {
   if (IS_PHYSICAL_DEVICE) {

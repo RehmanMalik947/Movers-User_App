@@ -67,6 +67,7 @@ export const jobApi = {
     getBids: (jobId) => apiService.get(`jobs/${jobId}/bids`),
     acceptBid: (jobId, bidId) => apiService.patch(`jobs/${jobId}/bids/${bidId}/accept`),
     cancel: (jobId, reason) => apiService.patch(`jobs/${jobId}/cancel`, { reason }),
+    inviteOwner: (jobId, ownerId) => apiService.post(`jobs/${jobId}/invite/${ownerId}`),
     create: (data) => apiService.post('jobs', data),
     update: (id, data) => apiService.put(`jobs/${id}`, data),
     delete: (id) => apiService.delete(`jobs/${id}`),
@@ -94,6 +95,12 @@ export const ownerApi = {
     getMyJobs: () => apiService.get('owner/my-jobs'),
     placeBid: (jobId, data) => apiService.post(`owner/jobs/${jobId}/bid`, data),
     assignDriver: (jobId, driverId) => apiService.patch(`owner/jobs/${jobId}/assign-driver`, { driver_id: driverId }),
+    getFleetLocations: () => apiService.get('owner/fleet/locations'),
+};
+
+export const truckOwnerApi = {
+    getAll: (params) => apiService.get('truck-owners', { params }),
+    getOne: (id) => apiService.get(`truck-owners/${id}`),
 };
 
 export const reviewApi = {
@@ -109,10 +116,14 @@ export const chatApi = {
   startConversation: (participant1Id, participant2Id, type) => apiService.post('chat/conversation/start', { participant1Id, participant2Id, type }),
   markAsRead: (conversationId, readerId) => apiService.patch(`chat/conversation/${conversationId}/read`, { readerId }),
   getContacts: (userId, role) => apiService.get(`chat/contacts/${userId}/${role}`),
+  uploadFile: (data) => apiService.post('chat/upload', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export const driverApi = {
     getProfile: () => apiService.get('drivers/profile'),
+    updateLocation: (latitude, longitude) => apiService.patch('drivers/location', { latitude, longitude }),
     toggleOnline: (is_online) => apiService.patch('drivers/toggle-online', { is_online }),
     getActiveJob: () => apiService.get('drivers/jobs/active'),
     arriveAtPickup: (jobId) => apiService.patch(`drivers/jobs/${jobId}/arrive`),

@@ -6,6 +6,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { driverApi, chatApi, jobApi } from '../../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { getStatusColor, getStatusLabel, isActiveStatus } from '../../utils/jobStatus';
+import { useDriverOnline } from '../../context/DriverOnlineContext';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
@@ -30,9 +31,9 @@ const C = {
 export default function DriverDashboard() {
     const { user } = useAuth();
     const navigation = useNavigation();
+    const { isOnline, setIsOnline } = useDriverOnline();
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isOnline, setIsOnline] = useState(false);
     const [statusLoading, setStatusLoading] = useState(false);
     const [completedCount, setCompletedCount] = useState(0);
 

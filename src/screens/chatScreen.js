@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Keyboard
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
-import { chatApi } from '../api/apiService';
+import { chatApi, jobApi } from '../api/apiService';
 import socketService from '../utils/SocketService';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Sound from 'react-native-nitro-sound';
+import { API_BASE_URL } from '../config/api';
 
 const C = {
   primary: '#1847B1',
@@ -25,21 +27,61 @@ const VoiceMessageBubble = ({ content, mine }) => {
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef(null);
 
-  const durationSec = parseInt(content.split(':')[1]) || 5;
+  const isNewUrl = content.includes('|');
+  const parts = isNewUrl ? content.split('|') : [];
+  const audioPath = isNewUrl ? parts[0] : '';
+  const durationStr = isNewUrl ? parts[1] : content;
+  const durationSec = parseInt(durationStr.split(':')[1]) || 5;
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (isPlaying) {
-      clearInterval(intervalRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
       setIsPlaying(false);
+      try {
+        await Sound.stopPlayer();
+      } catch (err) {
+        console.error('stopPlayer error:', err);
+      }
     } else {
       setIsPlaying(true);
-      const startTime = Date.now() - (progress * durationSec * 1000);
+      const currentProgress = progress >= 1 ? 0 : progress;
+      if (progress >= 1) {
+        setProgress(0);
+      }
+      
+      const startTime = Date.now() - (currentProgress * durationSec * 1000);
+      
+      try {
+        let playerUrl = '';
+        if (audioPath) {
+          if (audioPath.startsWith('http')) {
+            playerUrl = audioPath;
+          } else {
+            // Safely remove /api or /api/ from the end of API_BASE_URL
+            const serverBaseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+            const cleanAudioPath = audioPath.startsWith('/') ? audioPath : `/${audioPath}`;
+            playerUrl = `${serverBaseUrl}${cleanAudioPath}`;
+          }
+        } else {
+          playerUrl = 'https://www.w3schools.com/html/horse.mp3';
+        }
+        console.log('Playing audio from URL:', playerUrl);
+        await Sound.startPlayer(playerUrl);
+      } catch (err) {
+        console.error('startPlayer error:', err);
+        Alert.alert(
+          'Playback Alert',
+          `Could not play audio.\n\nTarget URL: ${playerUrl}\n\nTechnical details: ${err.message || String(err)}`
+        );
+      }
+
       intervalRef.current = setInterval(() => {
         const elapsed = (Date.now() - startTime) / (durationSec * 1000);
         if (elapsed >= 1) {
           setProgress(1);
           setIsPlaying(false);
-          clearInterval(intervalRef.current);
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          Sound.stopPlayer().catch(() => {});
         } else {
           setProgress(elapsed);
         }
@@ -50,6 +92,7 @@ const VoiceMessageBubble = ({ content, mine }) => {
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      Sound.stopPlayer().catch(() => {});
     };
   }, []);
 
@@ -85,7 +128,7 @@ const VoiceMessageBubble = ({ content, mine }) => {
           })}
         </View>
         <Text style={[styles.durationText, mine ? styles.textWhiteMuted : { color: C.textMuted }]}>
-          {isPlaying ? `${formatProgressTime()} / ${content}` : content}
+          {isPlaying ? `${formatProgressTime()} / ${durationStr}` : durationStr}
         </Text>
       </View>
     </View>
@@ -121,13 +164,22 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeJob, setActiveJob] = useState(null);
+  const [checkingJob, setCheckingJob] = useState(true);
   const [typingText, setTypingText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const recordingTimer = useRef(null);
   const flatListRef = useRef(null);
 
-  const myRole = user?.role || 'User';
+  let myRole = 'User';
+  if (user?.role === 'driver') {
+    myRole = 'Driver';
+  } else if (user?.role === 'owner') {
+    myRole = 'TruckOwner';
+  } else if (user?.role === 'customer' || user?.role === 'user') {
+    myRole = 'User';
+  }
   const myName = user?.name || 'Me';
 
   const loadMessages = useCallback(async () => {
@@ -143,10 +195,34 @@ export default function ChatScreen() {
 
   useEffect(() => {
     const init = async () => {
-      await socketService.connect();
-      socketService.joinConversation(conversationId);
-      await loadMessages();
-      socketService.markRead(conversationId, user?.id);
+      try {
+        let jobData = null;
+        if (myRole === 'User') {
+          const res = await jobApi.getMyActiveJobs(user?.id);
+          const jobs = Array.isArray(res) ? res : (res?.data || []);
+          jobData = jobs.find(j => String(j.driverId) === String(otherId));
+        } else if (myRole === 'Driver') {
+          const res = await jobApi.getDriverActiveJobs(user?.id);
+          const jobs = Array.isArray(res) ? res : (res?.data || []);
+          jobData = jobs.find(j => String(j.userId) === String(otherId));
+        } else {
+          jobData = { createdAt: new Date(0).toISOString() }; // TruckOwner bypass
+        }
+        
+        setActiveJob(jobData);
+
+        if (jobData) {
+          await socketService.connect();
+          socketService.joinConversation(conversationId);
+          await loadMessages();
+          socketService.markRead(conversationId, user?.id);
+        }
+      } catch (err) {
+        console.error('Init error:', err);
+      } finally {
+        setCheckingJob(false);
+        setLoading(false);
+      }
     };
     init();
 
@@ -206,60 +282,125 @@ export default function ChatScreen() {
     });
   }, [conversationId, user, myName]);
 
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordingSeconds(0);
-    recordingTimer.current = setInterval(() => {
-      setRecordingSeconds((prev) => prev + 1);
-    }, 1000);
+  const startRecording = async () => {
+    if (Platform.OS === 'android') {
+      const { PermissionsAndroid } = require('react-native');
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: 'Microphone Permission',
+            message: 'This app needs access to your microphone to record voice messages.',
+            buttonPositive: 'OK',
+          }
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission Denied', 'Microphone permission is required to record audio.');
+          return;
+        }
+      } catch (err) {
+        console.warn(err);
+        return;
+      }
+    }
+    
+    try {
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      await Sound.startRecorder();
+      recordingTimer.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to start recorder:', err);
+      Alert.alert('Recorder Error', 'Could not access microphone: ' + (err.message || String(err)));
+      setIsRecording(false);
+    }
   };
 
-  const cancelRecording = () => {
+  const cancelRecording = async () => {
     if (recordingTimer.current) clearInterval(recordingTimer.current);
     setIsRecording(false);
     setRecordingSeconds(0);
+    try {
+      await Sound.stopRecorder();
+    } catch (err) {
+      console.error('Cancel stop recorder error:', err);
+    }
   };
 
   const sendVoiceMessage = async () => {
     if (recordingSeconds === 0) {
-      cancelRecording();
+      await cancelRecording();
       return;
     }
     if (recordingTimer.current) clearInterval(recordingTimer.current);
+    const seconds = recordingSeconds;
     setIsRecording(false);
-    
-    const duration = `0:${recordingSeconds < 10 ? '0' : ''}${recordingSeconds}`;
     setRecordingSeconds(0);
 
-    const tempId = `temp-${Date.now()}`;
-    const optimistic = {
-      id: tempId,
-      conversationId,
-      senderId: user?.id,
-      senderRole: myRole,
-      senderName: myName,
-      content: duration,
-      messageType: 'voice',
-      status: 'sent',
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimistic]);
-
-    const sent = socketService.sendMessage({
-      conversationId,
-      senderId: user?.id,
-      senderRole: myRole,
-      senderName: myName,
-      content: duration,
-      messageType: 'voice',
-    });
-
-    if (!sent) {
-      try {
-        await chatApi.getMessages(conversationId);
-      } catch (e) {
-        console.error('Send fallback error:', e);
+    try {
+      const filePath = await Sound.stopRecorder();
+      console.log('Voice file recorded at:', filePath);
+      if (!filePath) {
+        throw new Error('Recording returned no file path');
       }
+
+      // Prepare file data
+      const formData = new FormData();
+      formData.append('file', {
+        uri: Platform.OS === 'android' ? filePath : filePath.replace('file://', ''),
+        type: Platform.OS === 'android' ? 'audio/mp4' : 'audio/m4a',
+        name: `voice-${Date.now()}.${Platform.OS === 'android' ? 'mp4' : 'm4a'}`,
+      });
+
+      // Upload to backend
+      const uploadRes = await chatApi.uploadFile(formData);
+      const fileUrl = uploadRes.fileUrl || uploadRes.data?.fileUrl;
+
+      if (!fileUrl) {
+        throw new Error('Failed to retrieve uploaded file URL');
+      }
+
+      const duration = `0:${seconds < 10 ? '0' : ''}${seconds}`;
+      const messageContent = `${fileUrl}|${duration}`;
+
+      const tempId = `temp-${Date.now()}`;
+      const optimistic = {
+        id: tempId,
+        conversationId,
+        senderId: user?.id,
+        senderRole: myRole,
+        senderName: myName,
+        content: messageContent,
+        messageType: 'voice',
+        status: 'sent',
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
+
+      const sent = socketService.sendMessage({
+        conversationId,
+        senderId: user?.id,
+        senderRole: myRole,
+        senderName: myName,
+        content: messageContent,
+        messageType: 'voice',
+      });
+
+      if (!sent) {
+        try {
+          await chatApi.getMessages(conversationId);
+        } catch (e) {
+          console.error('Send fallback error:', e);
+        }
+      }
+    } catch (err) {
+      console.error('sendVoiceMessage error:', err);
+      Alert.alert(
+        'Upload Error',
+        'Could not save or upload your recording. Make sure the backend server is running and the Android/iOS bundle has been rebuilt.\n\nDetails: ' + (err.message || String(err))
+      );
     }
   };
 
@@ -330,7 +471,11 @@ export default function ChatScreen() {
     socketService.emitTyping(conversationId, myName, val.length > 0);
   };
 
-  const isMine = (msg) => String(msg.senderId) === String(user?.id);
+  const isMine = (msg) => {
+    const isSameId = String(msg.senderId) === String(user?.id);
+    const isSameRole = String(msg.senderRole || '').toLowerCase() === String(myRole || '').toLowerCase();
+    return isSameId && isSameRole;
+  };
 
   const renderMessage = ({ item, index }) => {
     const mine = isMine(item);
@@ -408,6 +553,50 @@ export default function ChatScreen() {
     );
   };
 
+  const filteredMessages = activeJob 
+    ? messages.filter(m => new Date(m.createdAt) >= new Date(activeJob.createdAt)) 
+    : [];
+
+  if (checkingJob) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={C.primaryStandard} />
+          <Text style={{ marginTop: 12, color: C.textMuted }}>Checking active job...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!activeJob) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-back" size={24} color={C.textHead} />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerName}>{otherName || 'Chat'}</Text>
+          </View>
+        </View>
+        <View style={[styles.center, { paddingHorizontal: 40 }]}>
+          <Icon name="chatbubble-ellipses-outline" size={60} color={C.border} style={{ marginBottom: 20 }} />
+          {myRole === 'User' ? (
+             <>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: C.textHead, textAlign: 'center', marginBottom: 10 }}>No Active Shipment</Text>
+                <Text style={{ textAlign: 'center', color: C.textMuted, fontSize: 15, lineHeight: 22 }}>Currently, no driver is assigned to you or your shipment has already been delivered.</Text>
+             </>
+          ) : (
+             <>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: C.textHead, textAlign: 'center', marginBottom: 10 }}>Chat Unavailable</Text>
+                <Text style={{ textAlign: 'center', color: C.textMuted, fontSize: 15, lineHeight: 22 }}>You don't have an active job with this customer. Chat is closed after delivery.</Text>
+             </>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -431,7 +620,7 @@ export default function ChatScreen() {
         ) : (
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={filteredMessages}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
             contentContainerStyle={styles.msgList}

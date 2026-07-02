@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Act
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
-import { chatApi } from '../api/apiService';
+import { chatApi, jobApi } from '../api/apiService';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const C = {
@@ -46,7 +46,28 @@ export default function ChatListScreen() {
     setLoading(true);
     try {
       const res = await chatApi.getConversations(user.id, user.role || 'User');
-      setConversations(res?.data || []);
+      let chats = res?.data || [];
+      
+      const myRole = user?.role === 'customer' || user?.role === 'user' ? 'User' : user?.role === 'driver' ? 'Driver' : 'TruckOwner';
+      
+      if (myRole === 'User') {
+          const activeRes = await jobApi.getMyActiveJobs(user?.id);
+          const jobData = Array.isArray(activeRes) ? activeRes : (activeRes?.data || []);
+          const activeDriverIds = jobData.map(j => String(j.driverId));
+          chats = chats.filter(c => activeDriverIds.includes(String(c.otherId)));
+      } else if (myRole === 'Driver') {
+          const activeRes = await jobApi.getDriverActiveJobs(user?.id);
+          const jobData = Array.isArray(activeRes) ? activeRes : (activeRes?.data || []);
+          const activeUserIds = jobData.map(j => String(j.userId));
+          chats = chats.filter(c => {
+             if (c.type === 'user-driver') {
+                 return activeUserIds.includes(String(c.otherId));
+             }
+             return true;
+          });
+      }
+      
+      setConversations(chats);
     } catch (err) {
       console.error('Load conversations error:', err);
     } finally {
@@ -80,7 +101,10 @@ export default function ChatListScreen() {
         </View>
         <View style={styles.convBottom}>
           <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastSenderName ? `${item.lastSenderName}: ` : ''}{item.lastMessage || 'No messages yet'}
+            {item.lastSenderName ? `${item.lastSenderName}: ` : ''}
+            {item.lastMessage 
+               ? (item.lastMessage.includes('|') ? `🎤 Voice Message (${item.lastMessage.split('|')[1]})` : item.lastMessage) 
+               : 'No messages yet'}
           </Text>
           {item.unreadCount > 0 && (
             <View style={styles.unreadBadge}>
@@ -112,8 +136,12 @@ export default function ChatListScreen() {
           !loading ? (
             <View style={styles.empty}>
               <Icon name="chatbubbles-outline" size={50} color={C.border} />
-              <Text style={styles.emptyText}>No conversations yet</Text>
-              <Text style={styles.emptySub}>Start a chat from a job or contact</Text>
+              <Text style={styles.emptyText}>
+                {user?.role === 'user' || user?.role === 'customer' ? 'No Active Shipment' : 'No conversations yet'}
+              </Text>
+              <Text style={styles.emptySub}>
+                {user?.role === 'user' || user?.role === 'customer' ? 'Currently no driver assigned with you.' : 'Start a chat from a job or contact'}
+              </Text>
             </View>
           ) : (
             <View style={styles.empty}>

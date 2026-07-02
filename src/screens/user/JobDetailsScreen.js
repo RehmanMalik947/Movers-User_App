@@ -21,6 +21,7 @@ import {
   normalizeStatus,
 } from '../../utils/jobStatus';
 import CancelJobModal from '../../components/CancelJobModal';
+import StarRating from '../../components/StarRating';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────────
 const C = {
@@ -280,19 +281,59 @@ export default function JobDetailsScreen() {
                     </View>
                 </View>
 
+                {canCancel && (
+                  <TouchableOpacity
+                    style={styles.inviteBtn}
+                    onPress={() => navigation.navigate('TruckOwners', { jobId: job.id })}
+                    activeOpacity={0.8}
+                  >
+                    <Icon name="business-outline" size={18} color={C.primaryStandard} />
+                    <Text style={styles.inviteBtnText}>Find & Invite Truck Owner</Text>
+                  </TouchableOpacity>
+                )}
+
+                {job.targetOwnerId && job.targetOwnerName ? (
+                  <View style={styles.targetInfo}>
+                    <Icon name="paper-plane" size={16} color={C.primaryStandard} />
+                    <Text style={styles.targetInfoText}>
+                      Sent to <Text style={{ fontWeight: '800' }}>{job.targetOwnerName}</Text>
+                    </Text>
+                  </View>
+                ) : null}
+
                 {/* Bids */}
                 <Text style={styles.sectionTitle}>Bids ({job.bids?.length ?? 0})</Text>
 
                 {!job.bids?.length ? (
                     <View style={styles.emptyBids}>
                         <Icon name="file-tray-outline" size={48} color={C.border} />
-                        <Text style={styles.emptyText}>Waiting for truck owners to place bids...</Text>
+                        <Text style={styles.emptyText}>
+                          {job.targetOwnerName
+                            ? `Waiting for ${job.targetOwnerName} to place a bid...`
+                            : 'Waiting for truck owners to place bids...'}
+                        </Text>
                     </View>
                 ) : (
                     job.bids.map(bid => (
                         <View key={bid.id} style={styles.bidCard}>
                             <View style={styles.bidInfo}>
-                                <Text style={styles.bidOwner}>{bid.truck_owner_name || `Owner #${bid.truck_owner_id}`}</Text>
+                                <TouchableOpacity
+                                  onPress={() => navigation.navigate('TruckOwnerDetail', {
+                                    ownerId: bid.truck_owner_id,
+                                    jobId: canCancel ? job.id : undefined,
+                                  })}
+                                  activeOpacity={0.7}
+                                >
+                                  <Text style={styles.bidOwner}>{bid.truck_owner_name || `Owner #${bid.truck_owner_id}`}</Text>
+                                  {(bid.owner_rating > 0 || bid.owner_review_count > 0) && (
+                                    <View style={styles.bidRatingRow}>
+                                      <StarRating rating={bid.owner_rating || 0} size={12} />
+                                      <Text style={styles.bidReviewCount}>
+                                        ({bid.owner_review_count || 0} reviews)
+                                      </Text>
+                                    </View>
+                                  )}
+                                </TouchableOpacity>
                                 <Text style={styles.bidAmount}>Rs. {bid.price.toLocaleString()}</Text>
                             </View>
 
@@ -375,8 +416,35 @@ const styles = StyleSheet.create({
 
     bidCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: C.surface, padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: C.border },
     bidInfo: { flex: 1 },
-    bidOwner: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
-    bidAmount: { fontSize: 18, fontWeight: '800', color: C.primaryStandard, marginTop: 2 },
+    bidOwner: { fontSize: 14, color: C.textHead, fontWeight: '700' },
+    bidRatingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
+    bidReviewCount: { fontSize: 11, color: C.textMuted, fontWeight: '600' },
+    bidAmount: { fontSize: 18, fontWeight: '800', color: C.primaryStandard, marginTop: 6 },
+    inviteBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: C.primaryLight,
+      padding: 14,
+      borderRadius: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: C.primaryStandard + '30',
+    },
+    inviteBtnText: { color: C.primaryStandard, fontWeight: '800', fontSize: 14 },
+    targetInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: C.surface,
+      padding: 12,
+      borderRadius: 12,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    targetInfoText: { fontSize: 13, color: C.textBody },
 
     acceptBtn: { backgroundColor: C.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
     acceptBtnText: { color: C.white, fontWeight: '800', fontSize: 14 },

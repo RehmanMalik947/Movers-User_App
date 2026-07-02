@@ -6,6 +6,7 @@ const SOCKET_URL = API_BASE_URL.replace('/api/', '');
 
 class SocketService {
   socket = null;
+  listeners = {};
 
   async connect() {
     if (this.socket?.connected) return;
@@ -26,9 +27,22 @@ class SocketService {
       reconnectionDelayMax: 5000,
     });
 
-    this.socket.on('connect', () => console.log('Socket connected'));
+    this.socket.on('connect', () => {
+      console.log('Socket connected');
+      // Re-register all listeners upon connection/reconnection
+      Object.keys(this.listeners).forEach((event) => {
+        this.socket.off(event);
+        this.socket.on(event, this.listeners[event]);
+      });
+    });
     this.socket.on('disconnect', (reason) => console.log('Socket disconnected:', reason));
     this.socket.on('connect_error', (error) => console.error('Socket error:', error.message));
+
+    // Register all currently stored listeners
+    Object.keys(this.listeners).forEach((event) => {
+      this.socket.off(event);
+      this.socket.on(event, this.listeners[event]);
+    });
   }
 
   isConnected() {
@@ -80,6 +94,7 @@ class SocketService {
   }
 
   onMessageDeleted(callback) {
+    this.listeners['message_deleted'] = callback;
     if (this.socket) {
       this.socket.off('message_deleted');
       this.socket.on('message_deleted', callback);
@@ -87,6 +102,7 @@ class SocketService {
   }
 
   onReceiveMessage(callback) {
+    this.listeners['receive_message'] = callback;
     if (this.socket) {
       this.socket.off('receive_message');
       this.socket.on('receive_message', callback);
@@ -100,6 +116,7 @@ class SocketService {
   }
 
   onTyping(callback) {
+    this.listeners['display_typing'] = callback;
     if (this.socket) {
       this.socket.off('display_typing');
       this.socket.on('display_typing', callback);
@@ -113,6 +130,7 @@ class SocketService {
   }
 
   onMessagesRead(callback) {
+    this.listeners['messages_read'] = callback;
     if (this.socket) {
       this.socket.off('messages_read');
       this.socket.on('messages_read', callback);
@@ -120,6 +138,7 @@ class SocketService {
   }
 
   removeListener(event) {
+    delete this.listeners[event];
     if (this.socket) {
       this.socket.off(event);
     }

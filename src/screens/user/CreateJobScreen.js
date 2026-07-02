@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { jobApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { resetLocations } from '../../redux/slices/locationSlice';
 
@@ -33,8 +33,10 @@ const C = {
 export default function CreateJobScreen() {
     const { user } = useAuth();
     const navigation = useNavigation();
+    const route = useRoute();
     const dispatch = useDispatch();
     const { pickup, dropoff } = useSelector(state => state.location);
+    const { targetOwnerId, targetOwnerName } = route.params || {};
 
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
@@ -123,8 +125,15 @@ export default function CreateJobScreen() {
                 date: date || new Date().toISOString().split('T')[0],
                 fare: 0,
                 distance: 0,
+                targetOwnerId: targetOwnerId ? String(targetOwnerId) : undefined,
+                targetOwnerName: targetOwnerName || undefined,
             });
-            Alert.alert("Success", "Job Posted Successfully!");
+            Alert.alert(
+                'Success',
+                targetOwnerName
+                    ? `Job request sent to ${targetOwnerName}!`
+                    : 'Job Posted Successfully!'
+            );
             dispatch(resetLocations());
             navigation.navigate('HomeMain');
         } catch (error) {
@@ -161,6 +170,14 @@ export default function CreateJobScreen() {
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Animated.View style={{ opacity: fadeAnim }}>
+                    {targetOwnerName ? (
+                        <View style={styles.targetBanner}>
+                            <Icon name="business" size={18} color={C.primaryStandard} />
+                            <Text style={styles.targetBannerText}>
+                                Sending request to <Text style={{ fontWeight: '800' }}>{targetOwnerName}</Text>
+                            </Text>
+                        </View>
+                    ) : null}
                     <Text style={styles.sectionHeader}>Shipment Summary</Text>
                     <TextInput
                         style={styles.input}
@@ -301,6 +318,19 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: C.border
     },
+
+    targetBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: C.primaryLight,
+        padding: 14,
+        borderRadius: 14,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: C.primaryStandard + '30',
+    },
+    targetBannerText: { flex: 1, fontSize: 14, color: C.textBody },
 
     routeCard: { 
         backgroundColor: C.surface, 

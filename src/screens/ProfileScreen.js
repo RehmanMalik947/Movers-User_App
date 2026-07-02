@@ -439,7 +439,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sectionTitle: {
-    paddingLeft: 20,
     fontSize: 16,
     fontWeight: '600',
     color: C.textHead,

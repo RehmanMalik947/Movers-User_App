@@ -41,17 +41,26 @@ export default function OwnerDashboard() {
     const { user } = useAuth();
     const navigation = useNavigation();
     const [jobs, setJobs] = useState([]);
+    const [activeJobs, setActiveJobs] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const loadJobs = async () => {
         setLoading(true);
         try {
-            const data = await ownerApi.getAvailableJobs();
-            const list = Array.isArray(data) ? data : (data?.data ?? []);
+            const [availData, myData] = await Promise.all([
+                ownerApi.getAvailableJobs(),
+                ownerApi.getMyJobs()
+            ]);
+            const list = Array.isArray(availData) ? availData : (availData?.data ?? []);
             setJobs(list.map(mapJobToUI));
+
+            const myList = Array.isArray(myData) ? myData : (myData?.data ?? []);
+            const active = myList.filter(j => ['assigned', 'arrived_at_pickup', 'in-progress'].includes(j.status));
+            setActiveJobs(active.map(mapJobToUI));
         } catch (error) {
             console.error(error);
             setJobs([]);
+            setActiveJobs([]);
         } finally {
             setLoading(false);
         }
@@ -72,8 +81,17 @@ export default function OwnerDashboard() {
             >
                 <View style={styles.headerRow}>
                     <Text style={styles.jobTitle}>{item.title}</Text>
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{item.goodsType.toUpperCase()}</Text>
+                    <View style={styles.badgeRow}>
+                        {item.targetOwnerId ? (
+                          <View style={[styles.badge, styles.directBadge]}>
+                            <Text style={styles.directBadgeText}>Direct Request</Text>
+                          </View>
+                        ) : null}
+                        {item.goodsType ? (
+                          <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{item.goodsType.toUpperCase()}</Text>
+                          </View>
+                        ) : null}
                     </View>
                 </View>
 
@@ -129,6 +147,38 @@ export default function OwnerDashboard() {
                     <Text style={styles.myJobsBtnText}>Active Bids & Jobs</Text>
                     <Icon name="chevron-forward" size={20} color={C.textMuted} />
                 </TouchableOpacity>
+
+                {activeJobs.length > 0 && (
+                    <View style={{ marginBottom: 24 }}>
+                        <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Active Fleet Operations</Text>
+                        {activeJobs.map(item => (
+                            <TouchableOpacity
+                                key={item.id}
+                                style={[styles.jobCard, { borderColor: C.primaryStandard, borderWidth: 1.5, marginBottom: 8 }]}
+                                onPress={() => navigation.navigate('MyJobs')}
+                                activeOpacity={0.8}
+                            >
+                                <View style={styles.headerRow}>
+                                    <Text style={styles.jobTitle}>{item.title}</Text>
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>IN PROGRESS</Text>
+                                    </View>
+                                </View>
+                                <View style={[styles.routeContainer, { marginTop: 12, marginBottom: 8 }]}>
+                                    <View style={styles.routeItem}>
+                                        <View style={[styles.dot, { backgroundColor: C.success }]} />
+                                        <Text style={styles.routeText} numberOfLines={1}>{item.pickup}</Text>
+                                    </View>
+                                    <View style={styles.routeLine} />
+                                    <View style={styles.routeItem}>
+                                        <View style={[styles.dot, { backgroundColor: C.error }]} />
+                                        <Text style={styles.routeText} numberOfLines={1}>{item.dropoff}</Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
 
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Available Market</Text>
@@ -222,6 +272,7 @@ const styles = StyleSheet.create({
     },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     jobTitle: { fontSize: 17, fontWeight: '700', color: C.textHead, flex: 1, marginRight: 8 },
+    badgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' },
     badge: { 
         backgroundColor: C.primaryLight, 
         paddingHorizontal: 10, 
@@ -229,6 +280,8 @@ const styles = StyleSheet.create({
         borderRadius: 8 
     },
     badgeText: { fontSize: 10, color: C.primaryStandard, fontWeight: '800', letterSpacing: 0.5 },
+    directBadge: { backgroundColor: C.warning + '20' },
+    directBadgeText: { fontSize: 10, color: C.warning, fontWeight: '800' },
     jobDate: { fontSize: 12, color: C.textMuted, marginBottom: 16, marginTop: 4, fontWeight: '500' },
 
     routeContainer: { marginBottom: 16 },

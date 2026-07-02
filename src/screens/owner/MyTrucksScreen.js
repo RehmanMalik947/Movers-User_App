@@ -19,7 +19,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Image } from 'react-native';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { API_BASE_URL } from '../../config/api';
-
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
   primary: '#1847B1',        // Deep navy blue
@@ -115,7 +114,7 @@ export default function MyTrucksScreen() {
   const pickImage = (field) => {
     Alert.alert(
       'Select Image',
-      'Choose an option to upload',
+      'Choose upload option',
       [
         {
           text: 'Camera',
@@ -205,7 +204,7 @@ export default function MyTrucksScreen() {
       
       setShowAdd(false);
       loadTrucks();
-      Alert.alert('Success', isEditing ? 'Truck updated successfully.' : 'Truck added successfully.');
+      Alert.alert('Success', isEditing ? 'Truck updated successfully' : 'Truck added successfully');
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to save truck');
     } finally {
@@ -228,7 +227,7 @@ export default function MyTrucksScreen() {
   const handleDeleteTruck = async () => {
     Alert.alert(
       'Delete Truck',
-      'Are you sure you want to remove this vehicle from your fleet?',
+      'Are you sure you want to remove this vehicle?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -295,7 +294,7 @@ export default function MyTrucksScreen() {
             onPress={() => toggleTruckStatus(item)}
             activeOpacity={0.7}
         >
-          <Text style={styles.statusText}>{item.status || 'active'}</Text>
+          <Text style={styles.statusText}>{item.status === 'inactive' ? 'Inactive' : 'Active'}</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -324,7 +323,7 @@ export default function MyTrucksScreen() {
           !loading ? (
             <View style={styles.emptyContainer}>
                 <Icon name="car-outline" size={50} color={C.border} />
-                <Text style={styles.emptyText}>No trucks added yet.</Text>
+                <Text style={styles.emptyText}>No trucks yet</Text>
             </View>
           ) : null
         }
@@ -334,7 +333,7 @@ export default function MyTrucksScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{isEditing ? 'Update Vehicle' : 'Register New Truck'}</Text>
+              <Text style={styles.modalTitle}>{isEditing ? 'Update Vehicle' : 'Register Truck'}</Text>
               <TouchableOpacity onPress={() => setShowAdd(false)}>
                 <Icon name="close" size={24} color={C.textHead} />
               </TouchableOpacity>
@@ -395,8 +394,8 @@ export default function MyTrucksScreen() {
               <TextInput
                 style={styles.input}
                 value={form.registration_number}
-                onChangeText={(t) => setForm({ ...form, registration_number: t })}
-                placeholder="e.g. ABC-1234"
+                onChangeText={(text) => setForm({ ...form, registration_number: text })}
+                placeholder="ABC-1234"
                 placeholderTextColor={C.textMuted}
               />
               
@@ -404,8 +403,8 @@ export default function MyTrucksScreen() {
               <TextInput
                 style={styles.input}
                 value={form.model}
-                onChangeText={(t) => setForm({ ...form, model: t })}
-                placeholder="e.g. Isuzu Forward"
+                onChangeText={(text) => setForm({ ...form, model: text })}
+                placeholder="e.g. Hino, Isuzu"
                 placeholderTextColor={C.textMuted}
               />
               
@@ -415,7 +414,7 @@ export default function MyTrucksScreen() {
                     <TextInput
                         style={styles.input}
                         value={form.year}
-                        onChangeText={(t) => setForm({ ...form, year: t })}
+                        onChangeText={(text) => setForm({ ...form, year: text })}
                         placeholder="2024"
                         keyboardType="number-pad"
                         placeholderTextColor={C.textMuted}
@@ -427,7 +426,7 @@ export default function MyTrucksScreen() {
                     <TextInput
                         style={styles.input}
                         value={form.capacity_kg}
-                        onChangeText={(t) => setForm({ ...form, capacity_kg: t })}
+                        onChangeText={(text) => setForm({ ...form, capacity_kg: text })}
                         placeholder="3500"
                         keyboardType="number-pad"
                         placeholderTextColor={C.textMuted}
@@ -435,7 +434,7 @@ export default function MyTrucksScreen() {
                 </View>
               </View>
 
-              <Text style={styles.label}>Documents (Required)</Text>
+              <Text style={styles.label}>Documents Required</Text>
               <View style={styles.docsRow}>
                 <View style={styles.docCol}>
                   <Text style={styles.docLabel}>Registration</Text>

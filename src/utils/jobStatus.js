@@ -51,6 +51,8 @@ export const DRIVER_STEPS = [
   { key: 'completed', label: 'Delivered', icon: 'checkmark-circle-outline' },
 ];
 
+export const getDriverSteps = () => DRIVER_STEPS;
+
 export const getStepIndex = (status) => {
   const s = normalizeStatus(status).replace(/-/g, '_');
   const map = { assigned: 0, arrived_at_pickup: 1, in_progress: 2, completed: 3 };

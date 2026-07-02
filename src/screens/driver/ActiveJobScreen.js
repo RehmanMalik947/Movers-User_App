@@ -14,9 +14,9 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { chatApi, driverApi, jobApi } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
 import {
-  DRIVER_STEPS,
   formatElapsedTime,
   getDriverAction,
+  getDriverSteps,
   getStatusColor,
   getStatusLabel,
   getStepIndex,
@@ -99,16 +99,16 @@ export default function ActiveJobScreen() {
       if (res?.success) {
         setJob(res.data);
         const messages = {
-          arrive: 'Customer has been notified that you arrived!',
-          start: 'Delivery started — timer is running.',
-          complete: 'Great job! Delivery marked as complete.',
+          arrive: 'Customer has been notified of your arrival',
+          start: 'Delivery started',
+          complete: 'Delivery completed successfully',
         };
         Alert.alert('Success', messages[action]);
       } else {
-        Alert.alert('Error', res?.error || 'Could not update status');
+        Alert.alert('Error', res?.error || 'Could not update job status');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Could not update status');
+      Alert.alert('Error', error.message || 'Could not update job status');
     } finally {
       setUpdating(false);
     }
@@ -117,7 +117,7 @@ export default function ActiveJobScreen() {
   const handleChatWithCustomer = async () => {
     const customerId = job.customer_id || job.userId;
     if (!customerId) {
-      Alert.alert('Notice', 'Customer information not found.');
+      Alert.alert('Notice', 'Customer not found');
       return;
     }
     setUpdating(true);
@@ -162,6 +162,7 @@ export default function ActiveJobScreen() {
   const currentStep = getStepIndex(job.status);
   const statusColor = getStatusColor(job.status);
   const inTransit = normalizeStatus(job.status) === 'in-progress';
+  const driverSteps = getDriverSteps();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -188,7 +189,7 @@ export default function ActiveJobScreen() {
         <View style={styles.stepperCard}>
           <Text style={styles.cardTitle}>Delivery Progress</Text>
           <View style={styles.stepperRow}>
-            {DRIVER_STEPS.map((step, idx) => {
+            {driverSteps.map((step, idx) => {
               const done = idx <= currentStep;
               const active = idx === currentStep && !isCompleted;
               return (
@@ -209,7 +210,7 @@ export default function ActiveJobScreen() {
                   <Text style={[styles.stepLabel, active && styles.stepLabelActive]} numberOfLines={1}>
                     {step.label}
                   </Text>
-                  {idx < DRIVER_STEPS.length - 1 && (
+                  {idx < driverSteps.length - 1 && (
                     <View style={[styles.stepLine, done && styles.stepLineDone]} />
                   )}
                 </View>
@@ -253,7 +254,7 @@ export default function ActiveJobScreen() {
               <Icon name="flag" size={18} color={C.error} />
             </View>
             <View style={styles.routeInfo}>
-              <Text style={styles.label}>Dropoff</Text>
+              <Text style={styles.label}>Drop-off</Text>
               <Text style={styles.val}>{job.deliveryLocation || job.dropoff}</Text>
             </View>
           </View>
