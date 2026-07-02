@@ -188,14 +188,14 @@ export default function LoginScreen() {
 
             <FloatInput
               icon="mail-outline"
-              placeholder="Email / Phone (Driver)"
+              placeholder="Email"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
             />
             <FloatInput
               icon="lock-closed-outline"
-              placeholder="Password / CNIC (Driver)"
+              placeholder="Password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry

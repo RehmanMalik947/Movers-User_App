@@ -214,6 +214,13 @@ export default function UserDashboard() {
                     }
                 />
             </Animated.View>
+            <TouchableOpacity
+                style={styles.chatbotFab}
+                onPress={() => navigation.navigate('AIChat')}
+                activeOpacity={0.85}
+            >
+                <Icon name="sparkles" size={24} color="#fff" />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }
@@ -350,5 +357,23 @@ const styles = StyleSheet.create({
     bidsText: { fontSize: 11, color: C.white, fontWeight: '700' },
 
     emptyContainer: { alignItems: 'center', marginTop: 60, gap: 12 },
-    emptyText: { fontSize: 14, color: C.textMuted, fontWeight: '500' }
+    emptyText: { fontSize: 14, color: C.textMuted, fontWeight: '500' },
+    chatbotFab: {
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: C.primaryStandard,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: C.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        elevation: 8,
+        borderWidth: 1.5,
+        borderColor: C.white,
+    },
 });

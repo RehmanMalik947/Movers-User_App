@@ -52,6 +52,7 @@ export const authApi = {
     login: (email, password) => apiService.post('auth/login', { email, password }),
     signup: (data) => apiService.post('auth/signup', data),
     getMe: () => apiService.get('auth/me'),
+    updateFcmToken: (token) => apiService.post('auth/fcm-token', { token }),
 };
 
 export const jobApi = {
@@ -101,6 +102,10 @@ export const ownerApi = {
 export const truckOwnerApi = {
     getAll: (params) => apiService.get('truck-owners', { params }),
     getOne: (id) => apiService.get(`truck-owners/${id}`),
+};
+
+export const aiApi = {
+    chat: (message, history) => apiService.post('ai/chat', { message, history }),
 };
 
 export const reviewApi = {

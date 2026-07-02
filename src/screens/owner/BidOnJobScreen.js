@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { jobApi, ownerApi } from '../../api/apiService';
+import { useAuth } from '../../context/AuthContext';
 import Icon from 'react-native-vector-icons/Ionicons';
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
@@ -27,12 +28,14 @@ const C = {
 export default function BidOnJobScreen() {
     const route = useRoute();
     const navigation = useNavigation();
+    const { user } = useAuth();
     const { jobId } = route.params;
 
     const [job, setJob] = useState(null);
     const [bidAmount, setBidAmount] = useState('');
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [hasExistingBid, setHasExistingBid] = useState(false);
 
     useEffect(() => {
         loadJob();
@@ -40,8 +43,12 @@ export default function BidOnJobScreen() {
 
     const loadJob = async () => {
         try {
-            const raw = await jobApi.getOne(jobId);
-            const j = raw?.data ?? raw;
+            const [jobRes, bidsRes] = await Promise.all([
+                jobApi.getOne(jobId),
+                jobApi.getBids(jobId).catch(() => [])
+            ]);
+
+            const j = jobRes?.data ?? jobRes;
             if (j) {
                 setJob({
                     ...j,
@@ -49,6 +56,13 @@ export default function BidOnJobScreen() {
                     dropoff: j.deliveryLocation || j.dropoff || '',
                     vehicleType: j.truckType || j.vehicleType || '',
                 });
+            }
+
+            const bidsList = Array.isArray(bidsRes) ? bidsRes : (bidsRes?.data ?? []);
+            const myBid = bidsList.find(b => String(b.truck_owner_id) === String(user.id));
+            if (myBid) {
+                setBidAmount(String(myBid.price));
+                setHasExistingBid(true);
             }
         } catch (error) {
             Alert.alert('Error', 'Could not load job details');
@@ -67,7 +81,7 @@ export default function BidOnJobScreen() {
         setSubmitting(true);
         try {
             await ownerApi.placeBid(jobId, { price });
-            Alert.alert('Success', 'Your bid has been placed successfully');
+            Alert.alert('Success', hasExistingBid ? 'Your bid has been updated successfully' : 'Your bid has been placed successfully');
             navigation.goBack();
         } catch (error) {
             Alert.alert('Error', error.message || 'Failed to place bid');
@@ -129,6 +143,15 @@ export default function BidOnJobScreen() {
                     </View>
                 </View>
 
+                {hasExistingBid && (
+                    <View style={styles.existingBidBanner}>
+                        <Icon name="information-circle" size={18} color={C.primaryStandard} />
+                        <Text style={styles.existingBidText}>
+                            You have already placed a bid on this job. Editing the amount below will update your bid.
+                        </Text>
+                    </View>
+                )}
+
                 <View style={styles.bidSection}>
                     <Text style={styles.sectionTitle}>Your Offer</Text>
                     <View style={styles.inputWrapper}>
@@ -156,7 +179,7 @@ export default function BidOnJobScreen() {
                         <ActivityIndicator color={C.white} />
                     ) : (
                         <>
-                            <Text style={styles.btnText}>Submit Bid</Text>
+                            <Text style={styles.btnText}>{hasExistingBid ? 'Update Bid' : 'Submit Bid'}</Text>
                             <Icon name="arrow-forward" size={20} color={C.white} style={{ marginLeft: 8 }} />
                         </>
                     )}
@@ -241,4 +264,16 @@ const styles = StyleSheet.create({
     btnDisabled: { backgroundColor: C.border, shadowOpacity: 0, elevation: 0 },
     btnText: { color: C.white, fontSize: 18, fontWeight: '800' },
     emptyText: { fontSize: 16, color: C.textMuted, fontWeight: '500' },
+    existingBidBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: C.primaryLight,
+        padding: 14,
+        borderRadius: 14,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: C.primaryStandard + '30',
+    },
+    existingBidText: { flex: 1, fontSize: 14, color: C.textBody },
 });

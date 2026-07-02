@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar, useColorScheme, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,9 +15,18 @@ import OwnerStack from './src/navigation/OwnerStack';
 import DriverStack from './src/navigation/DriverStack';
 
 import LoadingOverlay from './src/components/LoadingOverlay';
+import { registerFcmTokenWithBackend, setupNotificationListeners } from './src/utils/notificationService';
 
 function RootNavigator() {
   const { user, isLoading, isInitialLoading } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      registerFcmTokenWithBackend();
+      const unsubscribe = setupNotificationListeners();
+      return unsubscribe;
+    }
+  }, [user]);
 
   if (isInitialLoading) {
     return (

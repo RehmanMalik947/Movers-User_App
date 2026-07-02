@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Dimensions, PermissionsAndroid, Platform } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
@@ -7,8 +7,8 @@ import { setDropoffLocation } from '../redux/slices/locationSlice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
-
-const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY';
+import Geolocation from '@react-native-community/geolocation';
+import { GOOGLE_API_KEY } from '../config/api';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
@@ -53,6 +53,47 @@ export default function DropoffLocationScreen() {
     });
   }, [navigation]);
 
+  useEffect(() => {
+    const getCurrentLocation = async () => {
+      let hasPermission = true;
+      if (Platform.OS === 'android') {
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Location Permission',
+              message: 'Allow Movers to access your current location to set the drop-off spot.',
+              buttonPositive: 'Allow',
+              buttonNegative: 'Deny',
+            }
+          );
+          hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+        } catch (err) {
+          console.warn('Location permission request error:', err);
+          hasPermission = false;
+        }
+      }
+      if (hasPermission) {
+        Geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setRegion({
+              latitude,
+              longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            });
+            updateMarkerAddress(latitude, longitude);
+          },
+          (error) => console.log('Geolocation getCurrentPosition error:', error),
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        );
+      }
+    };
+
+    getCurrentLocation();
+  }, []);
+
   const searchLocation = async (text) => {
     setQuery(text);
     if (text.length < 3) {
@@ -88,7 +129,8 @@ export default function DropoffLocationScreen() {
       );
       const result = res.data.results?.[0];
       if (!result) return;
-      const location = result.geometry.location;
+      const location = result.geometry?.location;
+      if (!location) return;
       const formattedAddress = result.formatted_address || item.description;
       setRegion({
         ...region,

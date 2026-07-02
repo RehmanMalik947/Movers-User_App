@@ -22,6 +22,7 @@ import ChatStack from './ChatStack';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import TruckOwnersScreen from '../screens/user/TruckOwnersScreen';
 import TruckOwnerDetailScreen from '../screens/user/TruckOwnerDetailScreen';
+import AIChatScreen from '../screens/AIChatScreen';
 
 // ─── Design Tokens - Matching Premium Aesthetic ──────────────────────────────────
 const C = {
@@ -68,6 +69,7 @@ function HomeStack() {
             <Stack.Screen name="RateJob" component={RateJobScreen} />
             <Stack.Screen name="TruckOwners" component={TruckOwnersScreen} />
             <Stack.Screen name="TruckOwnerDetail" component={TruckOwnerDetailScreen} />
+            <Stack.Screen name="AIChat" component={AIChatScreen} />
         </Stack.Navigator>
     );
 }

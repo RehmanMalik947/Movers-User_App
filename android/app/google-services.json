@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "328678533648",
+    "project_id": "final-year-14309",
+    "storage_bucket": "final-year-14309.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:328678533648:android:97509fc393b352becaf895",
+        "android_client_info": {
+          "package_name": "com.movers"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDQlhI0PDXG9dqDmEULtef3Q-Qv5oK724"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

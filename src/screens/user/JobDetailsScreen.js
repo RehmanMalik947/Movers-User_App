@@ -219,10 +219,11 @@ export default function JobDetailsScreen() {
                   </View>
                 )}
 
-                {/* Rate Driver - only for completed jobs */}
+                {/* Rate Driver & Owner - only for completed jobs */}
                 {normalizeStatus(job.rawStatus) === 'completed' && (
+                  <View style={{ marginBottom: 20, gap: 10 }}>
                     <TouchableOpacity 
-                        style={styles.rateButton} 
+                        style={[styles.rateButton, { marginBottom: 0 }]} 
                         onPress={() => navigation.navigate('RateJob', {
                             jobId: job.id,
                             toId: job.driver_id,
@@ -237,6 +238,26 @@ export default function JobDetailsScreen() {
                         <Icon name="star" size={20} color={C.warning} />
                         <Text style={styles.rateButtonText}>Rate Driver</Text>
                     </TouchableOpacity>
+
+                    {(job.truckOwnerId || job.truck_owner_id) ? (
+                      <TouchableOpacity 
+                          style={[styles.rateButton, { marginBottom: 0, backgroundColor: '#E8EFFD', borderColor: '#C3DAF9', borderStyle: 'solid' }]} 
+                          onPress={() => navigation.navigate('RateJob', {
+                              jobId: job.id,
+                              toId: job.truckOwnerId || job.truck_owner_id,
+                              toRole: 'owner',
+                              toName: job.truckOwnerName || job.truck_owner_name || 'Truck Owner',
+                              myId: currentUser?.id,
+                              myRole: 'customer',
+                              jobTitle: job.title,
+                          })}
+                          activeOpacity={0.8}
+                      >
+                          <Icon name="business" size={20} color="#2260D9" />
+                          <Text style={[styles.rateButtonText, { color: '#2260D9' }]}>Rate Truck Owner</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                 )}
 
                 {/* Main Card */}

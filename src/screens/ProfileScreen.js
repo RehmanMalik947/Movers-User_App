@@ -98,37 +98,37 @@ export default function ProfileScreen({ navigation }) {
         }
       },
     },
-    {
-      icon: 'card-outline',
-      label: 'Payment Methods',
-      onPress: () => navigation?.navigate('Payments'),
-    },
-    {
-      icon: 'location-outline',
-      label: 'Saved Addresses',
-      onPress: () => navigation?.navigate('Addresses'),
-    },
-    {
-      icon: 'notifications-outline',
-      label: 'Notifications',
-      onPress: () => navigation?.navigate('Notifications'),
-      badge: 3,
-    },
-    {
-      icon: 'shield-checkmark-outline',
-      label: 'Privacy & Security',
-      onPress: () => navigation?.navigate('Privacy'),
-    },
-    {
-      icon: 'help-circle-outline',
-      label: 'Help & Support',
-      onPress: () => navigation?.navigate('Support'),
-    },
-    {
-      icon: 'settings-outline',
-      label: 'Settings',
-      onPress: () => navigation?.navigate('Settings'),
-    },
+    // {
+    //   icon: 'card-outline',
+    //   label: 'Payment Methods',
+    //   onPress: () => navigation?.navigate('Payments'),
+    // },
+    // {
+    //   icon: 'location-outline',
+    //   label: 'Saved Addresses',
+    //   onPress: () => navigation?.navigate('Addresses'),
+    // },
+    // {
+    //   icon: 'notifications-outline',
+    //   label: 'Notifications',
+    //   onPress: () => navigation?.navigate('Notifications'),
+    //   badge: 3,
+    // },
+    //   {
+    //     icon: 'shield-checkmark-outline',
+    //     label: 'Privacy & Security',
+    //     onPress: () => navigation?.navigate('Privacy'),
+    //   },
+    //   {
+    //     icon: 'help-circle-outline',
+    //     label: 'Help & Support',
+    //     onPress: () => navigation?.navigate('Support'),
+    //   },
+    //   {
+    //     icon: 'settings-outline',
+    //     label: 'Settings',
+    //     onPress: () => navigation?.navigate('Settings'),
+    //   },
   ];
 
   return (
@@ -442,6 +442,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: C.textHead,
+    paddingStart: 10,
     marginBottom: 16,
   },
   infoRow: {

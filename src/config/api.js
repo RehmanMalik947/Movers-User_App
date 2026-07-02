@@ -10,21 +10,23 @@ import { Platform } from 'react-native';
  *     Set IS_PHYSICAL_DEVICE = false when running on an emulator/simulator.
  */
 const IS_PHYSICAL_DEVICE = true;            // ← toggle this
-const DEVICE_HOST_IP    = '192.168.137.208';  // ← your PC's LAN IP
+const DEVICE_HOST_IP    = '192.168.100.25';  // ← your PC's LAN IP
 
 const getBaseUrl = () => {
   if (IS_PHYSICAL_DEVICE) {
-    return `http://${DEVICE_HOST_IP}:5001/api/`;
+    return `https://fypbackend-production-795e.up.railway.app/api/`;
   }
   if (__DEV__) {
     return Platform.OS === 'android'
-      ? 'http://10.0.2.2:5001/api/'
-      : 'http://localhost:5001/api/';
+      ? 'https://fypbackend-production-795e.up.railway.app/api/'
+      : 'https://fypbackend-production-795e.up.railway.app/api/';
   }
-  return 'http://localhost:5001/api/';
+  return 'https://fypbackend-production-795e.up.railway.app/api/';
 };
 
 export const API_BASE_URL = getBaseUrl();
+
+export const GOOGLE_API_KEY = 'AIzaSyBtQlR_uF7q-S8TQblCzLw7Fy7BvyIeXAg';
 
 // import { Platform } from 'react-native';
 

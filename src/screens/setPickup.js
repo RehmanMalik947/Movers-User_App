@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Dimensions, PermissionsAndroid, Platform } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
@@ -7,6 +7,8 @@ import { setPickupLocation } from '../redux/slices/locationSlice';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
+import Geolocation from '@react-native-community/geolocation';
+import { GOOGLE_API_KEY } from '../config/api';
 
 // ─── Design Tokens - Matching Login Screen ─────────────────────────────────────────
 const C = {
@@ -50,6 +52,45 @@ export default function PickupLocationScreen() {
       headerTintColor: C.textHead,
       headerTitleStyle: { fontWeight: '800' },
     });
+
+    const getCurrentLocation = async () => {
+      let hasPermission = true;
+      if (Platform.OS === 'android') {
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Location Permission',
+              message: 'Allow Movers to access your current location to set the pickup spot.',
+              buttonPositive: 'Allow',
+              buttonNegative: 'Deny',
+            }
+          );
+          hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+        } catch (err) {
+          console.warn('Location permission request error:', err);
+          hasPermission = false;
+        }
+      }
+      if (hasPermission) {
+        Geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setRegion({
+              latitude,
+              longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            });
+            updateMarkerAddress(latitude, longitude);
+          },
+          (error) => console.log('Geolocation getCurrentPosition error:', error),
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        );
+      }
+    };
+
+    getCurrentLocation();
   }, []);
 
   const searchLocation = async (text) => {
@@ -61,7 +102,7 @@ export default function PickupLocationScreen() {
 
     try {
       const res = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${text}&key=YOUR_GOOGLE_API_KEY`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${GOOGLE_API_KEY}`
       );
       setResults(res.data.predictions || []);
     } catch (err) {
@@ -72,11 +113,14 @@ export default function PickupLocationScreen() {
   const handleSelectLocation = async (item) => {
     try {
       const res = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?place_id=${item.place_id}&key=YOUR_GOOGLE_API_KEY`
+        `https://maps.googleapis.com/maps/api/geocode/json?place_id=${item.place_id}&key=${GOOGLE_API_KEY}`
       );
 
-      const location = res.data.results[0].geometry.location;
-      const formattedAddress = res.data.results[0].formatted_address;
+      const result = res.data.results?.[0];
+      if (!result) return;
+      const location = result.geometry?.location;
+      if (!location) return;
+      const formattedAddress = result.formatted_address || item.description;
 
       setRegion({
         ...region,
@@ -95,10 +139,10 @@ export default function PickupLocationScreen() {
   const updateMarkerAddress = async (lat, lng) => {
     try {
       const res = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=YOUR_GOOGLE_API_KEY`
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_API_KEY}`
       );
 
-      const address = res.data.results[0]?.formatted_address || '';
+      const address = res.data.results?.[0]?.formatted_address || '';
       setMarkerAddress(address);
     } catch (err) {
       console.log('Reverse geocode error:', err);

@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useRef, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   View,
   Text,
@@ -41,6 +42,7 @@ const TABS = ['Departments', 'National', 'International'];
 export default function HomeScreen() {
   const activeIndex = 1; // "National" active
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -78,7 +80,7 @@ export default function HomeScreen() {
         <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.headerLeft}>
             <Text style={styles.welcome}>
-              Welcome back, <Text style={styles.userName}>Imran</Text> 👋
+              Welcome back, <Text style={styles.userName}>{user?.name || 'User'}</Text> 👋
             </Text>
             <Text style={styles.subtitle}>Driving efficiency in every shipment</Text>
             
@@ -216,6 +218,13 @@ export default function HomeScreen() {
         {/* Bottom Padding */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+      <TouchableOpacity
+        style={styles.chatbotFab}
+        onPress={() => navigation.navigate('AIChat')}
+        activeOpacity={0.85}
+      >
+        <Icon name="sparkles" size={24} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -548,5 +557,23 @@ const styles = StyleSheet.create({
 
   bottomPadding: {
     height: 20,
+  },
+  chatbotFab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: C.primaryStandard,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 1.5,
+    borderColor: C.white,
   },
 });
