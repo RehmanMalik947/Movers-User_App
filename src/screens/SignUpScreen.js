@@ -111,6 +111,7 @@ export default function SignupScreen() {
   const { signup, isLoading } = useAuth();
 
   const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -141,6 +142,11 @@ export default function SignupScreen() {
       return;
     }
 
+    if (role === 'owner' && !companyName) {
+      Alert.alert('Error', 'Please enter your company name');
+      return;
+    }
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -167,11 +173,18 @@ export default function SignupScreen() {
         phone,
         password,
         role,
-        company: role === 'owner' ? `${fullName}'s Logistics` : undefined,
+        company: role === 'owner' ? companyName : undefined,
       };
 
-      await signup(signupData);
-      // Navigation handled by App.js
+      const response = await signup(signupData);
+      if (role === 'owner' && response?.user?.status === 'pending') {
+        Alert.alert(
+          'Registration Pending',
+          response.message || 'Your request is in pending, wait for approval.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
+      // Navigation handled by App.js for other roles (who get a token)
     } catch (error) {
       Alert.alert(
         'Signup Failed',
@@ -272,6 +285,15 @@ export default function SignupScreen() {
               value={fullName}
               onChangeText={setFullName}
             />
+
+            {role === 'owner' && (
+              <FloatInput
+                icon="business-outline"
+                placeholder="Company Name"
+                value={companyName}
+                onChangeText={setCompanyName}
+              />
+            )}
             <FloatInput
               icon="mail-outline"
               placeholder="Email Address"

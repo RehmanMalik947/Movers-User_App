@@ -51,10 +51,12 @@ export const AuthProvider = ({ children }) => {
             const response = await authApi.signup(data);
             const { token, user: userData } = response;
 
-            setUser(userData);
-            await AsyncStorage.setItem('user', JSON.stringify(userData));
-            await AsyncStorage.setItem('token', token);
-            return userData;
+            if (token) {
+                setUser(userData);
+                await AsyncStorage.setItem('user', JSON.stringify(userData));
+                await AsyncStorage.setItem('token', token);
+            }
+            return response;
         } catch (error) {
             console.error('Signup failed:', error.message);
             throw error;
